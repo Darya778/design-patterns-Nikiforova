@@ -1,7 +1,7 @@
 import os
 import json
-from str.models.company_model import company_model
-from str.models.settings import Settings
+from src.models.company_model import company_model
+from src.models.settings import Settings
 
 
 class settings_manager:
