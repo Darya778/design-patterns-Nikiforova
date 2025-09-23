@@ -32,10 +32,16 @@ class settings_manager:
 
     @file_name.setter
     def file_name(self, value: str):
-        if value.strip() == "":
+        if value is None:
             return
-        if os.path.exists(value):
-            self.__file_name = value.strip()
+        value = value.strip()
+        if value == "":
+            return
+        norm = os.path.normpath(value)
+        if not os.path.isabs(norm):
+            norm = os.path.abspath(norm)
+        if os.path.exists(norm):
+            self.__file_name = norm
 
     def load(self):
         if self.__file_name.strip() == "":
@@ -47,7 +53,9 @@ class settings_manager:
 
             if "company" in data.keys():
                 item = data["company"]
-                self.__company.name = item.get("name", "")
+                name = item.get("name", "")
+                if name:
+                    self.__company.name = name
                 self.__settings = self.convert(item)
                 return True
             return False
@@ -61,11 +69,26 @@ class settings_manager:
         self.__settings = None
 
     def convert(self, data: dict) -> Settings:
-        return Settings(
-            name=data.get("name", ""),
-            inn=data.get("inn", "000000000000"),
-            account=data.get("account", "00000000000"),
-            corr_account=data.get("corr_account", "00000000000"),
-            bik=data.get("bik", "000000000"),
-            ownership=data.get("ownership", "00000")
-        )
+        name = data.get("name", "")
+        inn = data.get("inn", "")
+        account = data.get("account", "")
+        corr_account = data.get("corr_account", "")
+        bik = data.get("bik", "")
+        ownership = data.get("ownership", "")
+
+        comp = company_model()
+        if name and name.strip() != "":
+            comp.name = name
+        if inn != "":
+            comp.inn = inn
+        if account != "":
+            comp.account = account
+        if corr_account != "":
+            comp.corr_account = corr_account
+        if bik != "":
+            comp.bik = bik
+        if ownership != "":
+            comp.ownership = ownership
+
+        return Settings(company=comp)
+
