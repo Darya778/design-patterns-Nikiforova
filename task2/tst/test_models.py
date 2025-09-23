@@ -28,7 +28,6 @@ class TestModels(unittest.TestCase):
         manager1 = settings_manager(file_name)
         manager2 = settings_manager(file_name)
         manager1.load()
-        # manager2.load()
         assert manager1.company == manager2.company
 
 
@@ -52,7 +51,7 @@ class TestCompanyModel(unittest.TestCase):
 class TestSettings(unittest.TestCase):
 
     def test_settings_validation(self):
-        s = Settings(
+        company = company_model(
             name="Компания",
             inn="123456789012",
             account="12345678901",
@@ -61,32 +60,35 @@ class TestSettings(unittest.TestCase):
             ownership="ЗАО  "
         )
 
-        self.assertEqual(s.name, "Компания")
-        self.assertEqual(s.inn, "123456789012")
-        self.assertEqual(s.account, "12345678901")
-        self.assertEqual(s.corr_account, "98765432109")
-        self.assertEqual(s.bik, "123456789")
-        self.assertEqual(s.ownership, "ЗАО  ")
+        s = Settings(company=company)
+
+        self.assertEqual(s.company.name, "Компания")
+        self.assertEqual(s.company.inn, "123456789012")
+        self.assertEqual(s.company.account, "12345678901")
+        self.assertEqual(s.company.corr_account, "98765432109")
+        self.assertEqual(s.company.bik, "123456789")
+        self.assertEqual(s.company.ownership, "ЗАО  ")
 
     def test_settings_invalid_inn(self):
         with self.assertRaises(ValueError):
-            Settings("Компания", "12345", "12345678901", "98765432109", "123456789", "ЗАО  ")
+            company_model(inn="12345")
 
     def test_invalid_fields(self):
         with self.assertRaises(ValueError):
-            Settings("Company", "12345", "12345678901", "98765432109", "123456789", "OOOOO")
+            company_model(inn="12345")
         with self.assertRaises(ValueError):
-            Settings("Company", "123456789012", "12345", "98765432109", "123456789", "OOOOO")
+            company_model(account="12345")
         with self.assertRaises(ValueError):
-            Settings("Company", "123456789012", "12345678901", "12345", "123456789", "OOOOO")
+            company_model(corr_account="12345")
         with self.assertRaises(ValueError):
-            Settings("Company", "123456789012", "12345678901", "98765432109", "12345", "OOOOO")
+            company_model(bik="12345")
         with self.assertRaises(ValueError):
-            Settings("Company", "123456789012", "12345678901", "98765432109", "123456789", "AB")
+            company_model(ownership="AB")
 
-    def test_name_cannot_be_empty(self):
-        with self.assertRaises(ValueError):
-            Settings("", "123456789012", "12345678901", "98765432109", "123456789", "OOOOO")
+    def test_name_cannot_be_empty_on_init_but_ignored(self):
+        c = company_model()
+        self.assertEqual(c.name, "")
+
 
 class TestSettingsManager(unittest.TestCase):
 
@@ -110,9 +112,11 @@ class TestSettingsManager(unittest.TestCase):
 
         loader = settings_manager(file_path)
         self.assertTrue(loader.load())
-        self.assertEqual(loader.settings.inn, "123456789012")
-        self.assertEqual(loader.settings.account, "12345678901")
+        self.assertEqual(loader.settings.company.inn, "123456789012")
+        self.assertEqual(loader.settings.company.account, "12345678901")
         self.assertEqual(loader.company.name, "TestCo")
+
+        os.remove(file_path)
 
     def test_load_without_filename(self):
         sm = settings_manager("   ")
@@ -146,7 +150,37 @@ class TestSettingsManager(unittest.TestCase):
         }
         settings_obj = sm.convert(data)
         self.assertIsInstance(settings_obj, Settings)
-        self.assertEqual(settings_obj.inn, "123456789012")
+        self.assertEqual(settings_obj.company.inn, "123456789012")
+
+    def test_load_with_relative_path(self):
+        tmp_dir = os.path.join(os.path.dirname(__file__), "../src/data")
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        file_path = os.path.join(tmp_dir, "settings.json")
+
+        data = {
+            "company": {
+                "name": "RelCo",
+                "inn": "123456789012",
+                "account": "12345678901",
+                "corr_account": "98765432109",
+                "bik": "123456789",
+                "ownership": "ЗАО  "
+            }
+        }
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+
+        rel_path = os.path.join(os.path.dirname(__file__), "../src/data/settings.json")
+        sm = settings_manager(rel_path)
+        result = sm.load()
+
+        self.assertTrue(result)
+        self.assertEqual(sm.company.name, "RelCo")
+        self.assertEqual(sm.settings.company.inn, "123456789012")
+
+        os.remove(file_path)
 
 
 if __name__ == "__main__":
