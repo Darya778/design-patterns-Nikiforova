@@ -90,7 +90,7 @@ class company_model:
     def ownership(self, value: str):
         if not isinstance(value, str):
             raise ValueError("Вид собственности должен быть строкой")
-        if len(value) != 5:
+        if len(value) > 5:
             raise ValueError("Вид собственности должен содержать 5 символов")
         self._ownership = value
 
