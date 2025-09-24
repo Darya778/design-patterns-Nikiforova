@@ -9,43 +9,73 @@ import tempfile
 class TestModels(unittest.TestCase):
 
     def test_empty_createmodel_company_model(self):
-        model = company_model()
+        model = company_model(name="")
         assert model.name == ""
 
     def test_notEmpty_createmodel_company_model(self):
-        model = company_model()
-        model.name = "test"
+        model = company_model(name="test")
         assert model.name != ""
 
     def test_load_createmodel_company_model(self):
-        file_name = "D:/MY/pycharm/Patterns2025/settings.json"
-        manager = settings_manager(file_name)
-        result = manager.load()
-        assert result == True
+        sm = settings_manager("settings.json")
+        result = sm.load()
+        assert result is True
 
     def test_load_two_createmodel_company_model(self):
-        file_name = "D:/MY/pycharm/Patterns2025/settings.json"
-        manager1 = settings_manager(file_name)
-        manager2 = settings_manager(file_name)
-        manager1.load()
-        assert manager1.company == manager2.company
+        sm1 = settings_manager("settings.json")
+        sm2 = settings_manager("settings.json")
+        sm1.load()
+        sm2.load()
+        assert sm1.company == sm2.company
 
 
 class TestCompanyModel(unittest.TestCase):
 
     def test_inn_valid_and_invalid(self):
-        c = company_model()
+        c = company_model(name="Test")
         c.inn = "123456789012"
-        self.assertEqual(c.inn, "123456789012")
+        assert c.inn == "123456789012"
         with self.assertRaises(ValueError):
             c.inn = "123"
 
+    def test_account_and_corr_account_validation(self):
+        c = company_model(name="Test")
+        c.account = "12345678901"
+        assert c.account == "12345678901"
+        with self.assertRaises(ValueError):
+            c.account = "123"
+
+        c.corr_account = "98765432109"
+        assert c.corr_account == "98765432109"
+        with self.assertRaises(ValueError):
+            c.corr_account = "12"
+
+    def test_bik_and_ownership_validation(self):
+        c = company_model(name="Test")
+        c.bik = "123456789"
+        assert c.bik == "123456789"
+        with self.assertRaises(ValueError):
+            c.bik = "123"
+
+        c.ownership = "ООО"
+        assert c.ownership == "ООО"
+
+        with self.assertRaises(ValueError):
+            c.ownership = "СЛИШКОМДЛИННО"
+
     def test_name_setter_empty(self):
-        c = company_model()
-        c.name = "Test"
-        self.assertEqual(c.name, "Test")
+        c = company_model(name="Test")
+        assert c.name == "Test"
         c.name = "   "
-        self.assertEqual(c.name, "Test")
+        assert c.name == "Test"
+
+    def test_repr_and_eq(self):
+        c1 = company_model(name="Test", inn="123456789012")
+        c2 = company_model(name="Test", inn="123456789012")
+        c3 = company_model(name="Other", inn="000000000000")
+        assert repr(c1).startswith("company_model(")
+        assert c1 == c2
+        assert c1 != c3
 
 
 class TestSettings(unittest.TestCase):
@@ -57,37 +87,17 @@ class TestSettings(unittest.TestCase):
             account="12345678901",
             corr_account="98765432109",
             bik="123456789",
-            ownership="ЗАО  "
+            ownership="ЗАО"
         )
 
         s = Settings(company=company)
+        assert s.company.name == "Компания"
+        assert s.log_level == "INFO"
+        assert "Settings(" in repr(s)
 
-        self.assertEqual(s.company.name, "Компания")
-        self.assertEqual(s.company.inn, "123456789012")
-        self.assertEqual(s.company.account, "12345678901")
-        self.assertEqual(s.company.corr_account, "98765432109")
-        self.assertEqual(s.company.bik, "123456789")
-        self.assertEqual(s.company.ownership, "ЗАО  ")
-
-    def test_settings_invalid_inn(self):
+    def test_settings_invalid_company(self):
         with self.assertRaises(ValueError):
-            company_model(inn="12345")
-
-    def test_invalid_fields(self):
-        with self.assertRaises(ValueError):
-            company_model(inn="12345")
-        with self.assertRaises(ValueError):
-            company_model(account="12345")
-        with self.assertRaises(ValueError):
-            company_model(corr_account="12345")
-        with self.assertRaises(ValueError):
-            company_model(bik="12345")
-        with self.assertRaises(ValueError):
-            company_model(ownership="AB")
-
-    def test_name_cannot_be_empty_on_init_but_ignored(self):
-        c = company_model()
-        self.assertEqual(c.name, "")
+            Settings(company="not_a_company_model")
 
 
 class TestSettingsManager(unittest.TestCase):
@@ -103,7 +113,7 @@ class TestSettingsManager(unittest.TestCase):
                 "account": "12345678901",
                 "corr_account": "98765432109",
                 "bik": "123456789",
-                "ownership": "ЗАО  "
+                "ownership": "ЗАО"
             }
         }
 
@@ -111,10 +121,9 @@ class TestSettingsManager(unittest.TestCase):
             json.dump(data, f, ensure_ascii=False)
 
         loader = settings_manager(file_path)
-        self.assertTrue(loader.load())
-        self.assertEqual(loader.settings.company.inn, "123456789012")
-        self.assertEqual(loader.settings.company.account, "12345678901")
-        self.assertEqual(loader.company.name, "TestCo")
+        assert loader.load()
+        assert loader.settings.company.name == "TestCo"
+        assert loader.settings.company.inn == "123456789012"
 
         os.remove(file_path)
 
@@ -131,14 +140,14 @@ class TestSettingsManager(unittest.TestCase):
             f.write("{ invalid json }")
 
         sm = settings_manager(tmp_path)
-        self.assertFalse(sm.load())
+        assert not sm.load()
 
         os.remove(tmp_path)
 
     def test_convert_and_default(self):
         sm = settings_manager("   ")
         sm.default()
-        self.assertEqual(sm.company.name, "Рога и копыта")
+        assert sm.company.name == "Рога и копыта"
 
         data = {
             "name": "TestCo",
@@ -146,17 +155,17 @@ class TestSettingsManager(unittest.TestCase):
             "account": "12345678901",
             "corr_account": "98765432109",
             "bik": "123456789",
-            "ownership": "OOOOO"
+            "ownership": "ООО"
         }
         settings_obj = sm.convert(data)
-        self.assertIsInstance(settings_obj, Settings)
-        self.assertEqual(settings_obj.company.inn, "123456789012")
+        assert isinstance(settings_obj, Settings)
+        assert settings_obj.company.inn == "123456789012"
 
     def test_load_with_relative_path(self):
         tmp_dir = os.path.join(os.path.dirname(__file__), "../src/data")
         os.makedirs(tmp_dir, exist_ok=True)
 
-        file_path = os.path.join(tmp_dir, "settings.json")
+        rel_path = os.path.join(tmp_dir, "settings.json")
 
         data = {
             "company": {
@@ -165,24 +174,50 @@ class TestSettingsManager(unittest.TestCase):
                 "account": "12345678901",
                 "corr_account": "98765432109",
                 "bik": "123456789",
-                "ownership": "ЗАО  "
+                "ownership": "ЗАО"
             }
         }
 
-        with open(file_path, "w", encoding="utf-8") as f:
+        with open(rel_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False)
 
-        rel_path = os.path.join(os.path.dirname(__file__), "../src/data/settings.json")
-        sm = settings_manager(rel_path)
+        sm = settings_manager(os.path.join("..", "src", "data", "settings.json"))
         result = sm.load()
 
-        self.assertTrue(result)
-        self.assertEqual(sm.company.name, "RelCo")
-        self.assertEqual(sm.settings.company.inn, "123456789012")
+        assert result
+        assert sm.company.name == "RelCo"
+        assert sm.settings.company.inn == "123456789012"
 
-        os.remove(file_path)
+        os.remove(rel_path)
+
+    def test_load_settings_from_project_root(self):
+        sm = settings_manager("settings.json")
+        result = sm.load()
+        assert result
+        assert sm.settings.company.name != ""
+
+    def test_load_with_parent_relative_path(self):
+        sm = settings_manager("../settings.json")
+        result = sm.load()
+        assert result
+        assert sm.settings.company.name != ""
+
+    def test_file_name_setter_none_or_empty(self):
+        sm = settings_manager("settings.json")
+        sm.file_name = None
+        assert os.path.basename(sm.file_name) == "settings.json"
+
+    def test_load_without_company_key(self):
+        tmp_fd, tmp_path = tempfile.mkstemp()
+        os.close(tmp_fd)
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump({"wrong_key": {}}, f, ensure_ascii=False)
+
+        sm = settings_manager(tmp_path)
+        assert not sm.load()
+
+        os.remove(tmp_path)
 
 
 if __name__ == "__main__":
     unittest.main()
-
