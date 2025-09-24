@@ -37,15 +37,35 @@ class settings_manager:
         value = value.strip()
         if value == "":
             return
+
         norm = os.path.normpath(value)
+
         if not os.path.isabs(norm):
-            norm = os.path.abspath(norm)
-        if os.path.exists(norm):
+            candidate = os.path.abspath(norm)
+            if os.path.exists(candidate):
+                self.__file_name = candidate
+                return
+
+            candidate = os.path.abspath(os.path.join(os.getcwd(), "..", os.path.basename(norm)))
+            if os.path.exists(candidate):
+                self.__file_name = candidate
+                return
+
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+            candidate = os.path.join(project_root, norm)
+            if os.path.exists(candidate):
+                self.__file_name = candidate
+                return
+
+        if os.path.isabs(norm) and os.path.exists(norm):
             self.__file_name = norm
 
     def load(self):
         if self.__file_name.strip() == "":
             raise Exception("Не найден файл настройки")
+
+        if not os.path.exists(self.__file_name):
+            raise FileNotFoundError(f"Файл {self.__file_name} не найден")
 
         try:
             with open(self.__file_name, 'r', encoding='utf-8') as file:
@@ -53,9 +73,7 @@ class settings_manager:
 
             if "company" in data.keys():
                 item = data["company"]
-                name = item.get("name", "")
-                if name:
-                    self.__company.name = name
+                self.__company.name = item.get("name", self.__company.name)
                 self.__settings = self.convert(item)
                 return True
             return False
@@ -69,26 +87,18 @@ class settings_manager:
         self.__settings = None
 
     def convert(self, data: dict) -> Settings:
-        name = data.get("name", "")
-        inn = data.get("inn", "")
-        account = data.get("account", "")
-        corr_account = data.get("corr_account", "")
-        bik = data.get("bik", "")
-        ownership = data.get("ownership", "")
-
         comp = company_model()
-        if name and name.strip() != "":
-            comp.name = name
-        if inn != "":
-            comp.inn = inn
-        if account != "":
-            comp.account = account
-        if corr_account != "":
-            comp.corr_account = corr_account
-        if bik != "":
-            comp.bik = bik
-        if ownership != "":
-            comp.ownership = ownership
+        if data.get("name"):
+            comp.name = data["name"]
+        if data.get("inn"):
+            comp.inn = data["inn"]
+        if data.get("account"):
+            comp.account = data["account"]
+        if data.get("corr_account"):
+            comp.corr_account = data["corr_account"]
+        if data.get("bik"):
+            comp.bik = data["bik"]
+        if data.get("ownership"):
+            comp.ownership = data["ownership"]
 
         return Settings(company=comp)
-
