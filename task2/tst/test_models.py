@@ -4,7 +4,7 @@ from src.models.company_model import company_model
 """
 Юнит-тесты для модели company_model
 """
-class TestCompanyModel(unittest.TestCase):
+class test_company_model(unittest.TestCase):
 
     def test_success_set_inn_with_12_digits(self):
         """
