@@ -1,117 +1,74 @@
+from src.core.validator import validator, argument_exception
+
+"""
+Domain-модель компании
+Содержит основные реквизиты: ИНН, счета, БИК, форму собственности и название
+Все поля валидируются согласно правилам в _validators
+"""
 class company_model:
-    def __init__(self,
-                 name: str = "",
-                 inn: str = "",
-                 account: str = "",
-                 corr_account: str = "",
-                 bik: str = "",
-                 ownership: str = ""):
-        self._name = ""
-        self._inn = ""
-        self._account = ""
-        self._corr_account = ""
-        self._bik = ""
-        self._ownership = ""
+    _validators = {
+        "inn": {"type": str, "digit": True, "length": 12, "error": "ИНН должен содержать 12 цифр"},
+        "account": {"type": str, "digit": True, "length": 11, "error": "Счет должен содержать 11 цифр"},
+        "corr_account": {"type": str, "digit": True, "length": 11, "error": "Корр. счет должен содержать 11 цифр"},
+        "bik": {"type": str, "digit": True, "length": 9, "error": "БИК должен содержать 9 цифр"},
+        "ownership": {"type": str, "max_length": 5, "error": "Вид собственности <= 5 символов"},
+        "name": {"type": str, "strip": True, "error": "Название компании не должно быть пустым"},
+    }
 
-        if name is not None and name.strip() != "":
-            self.name = name
-        if inn is not None and inn != "":
-            self.inn = inn
-        if account is not None and account != "":
-            self.account = account
-        if corr_account is not None and corr_account != "":
-            self.corr_account = corr_account
-        if bik is not None and bik != "":
-            self.bik = bik
-        if ownership is not None and ownership != "":
-            self.ownership = ownership
+    """
+    Конструктор модели
+    Инициализирует все поля пустыми строками, далее присваивает значения из kwargs
+    """
+    def __init__(self, **kwargs):
+        self._data = {key: "" for key in self._validators}
+        for key, value in kwargs.items():
+            if key in self._validators:
+                setattr(self, key, value)
 
-    @property
-    def inn(self) -> str:
-        return self._inn
+    """ Проверяет корректность значения по правилам из _validators """
+    def _validate(self, field, value):
+        rules = self._validators[field]
 
-    @inn.setter
-    def inn(self, value: str):
-        if not isinstance(value, str):
-            raise ValueError("ИНН должен быть строкой цифр")
-        if not value.isdigit():
-            raise ValueError("ИНН должен быть числом")
-        if len(value) != 12:
-            raise ValueError("ИНН должен содержать 12 символов")
-        self._inn = value
+        if rules.get("strip") and isinstance(value, str):
+            stripped = value.strip()
+            if stripped == "":
+                return self._data.get(field, "")
+            value = stripped
 
-    @property
-    def account(self) -> str:
-        return self._account
+        try:
+            validator.validate(value, rules["type"], rules.get("length") or rules.get("max_length"))
+        except argument_exception as ex:
+            raise ValueError(str(ex)) from ex
 
-    @account.setter
-    def account(self, value: str):
-        if not isinstance(value, str):
-            raise ValueError("Счет должен быть строкой цифр")
-        if not value.isdigit():
-            raise ValueError("Счет должен быть числом")
-        if len(value) != 11:
-            raise ValueError("Счет должен содержать 11 символов")
-        self._account = value
+        if rules.get("digit") and not value.isdigit():
+            raise ValueError(rules["error"])
+        if rules.get("length") and len(value) != rules["length"]:
+            raise ValueError(rules["error"])
+        if rules.get("max_length") and len(value) > rules["max_length"]:
+            raise ValueError(rules["error"])
 
-    @property
-    def corr_account(self) -> str:
-        return self._corr_account
+        return value
 
-    @corr_account.setter
-    def corr_account(self, value: str):
-        if not isinstance(value, str):
-            raise ValueError("Корр. счет должен быть строкой цифр")
-        if not value.isdigit():
-            raise ValueError("Корреспондентский счет должен быть числом")
-        if len(value) != 11:
-            raise ValueError("Корреспондентский счет должен содержать 11 символов")
-        self._corr_account = value
+    """ Доступ к значениям через атрибуты """
+    def __getattr__(self, item):
+        if item in self._validators:
+            return self._data[item]
+        raise AttributeError(f"{self.__class__.__name__} has no attribute '{item}'")
 
-    @property
-    def bik(self) -> str:
-        return self._bik
+    """ Присвоение значения атрибуту с автоматической валидацией """
+    def __setattr__(self, key, value):
+        if key in ("_data", "_validators"):
+            super().__setattr__(key, value)
+        elif key in self._validators:
+            self._data[key] = self._validate(key, value)
+        else:
+            raise AttributeError(f"Неизвестное поле: {key}")
 
-    @bik.setter
-    def bik(self, value: str):
-        if not isinstance(value, str):
-            raise ValueError("БИК должен быть строкой цифр")
-        if not value.isdigit():
-            raise ValueError("БИК должен быть числом")
-        if len(value) != 9:
-            raise ValueError("БИК должен содержать 9 символов")
-        self._bik = value
-
-    @property
-    def ownership(self) -> str:
-        return self._ownership
-
-    @ownership.setter
-    def ownership(self, value: str):
-        if not isinstance(value, str):
-            raise ValueError("Вид собственности должен быть строкой")
-        if len(value) > 5:
-            raise ValueError("Вид собственности должен содержать 5 символов")
-        self._ownership = value
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, value: str):
-        if value is None:
-            return
-        if value.strip() == "":
-            return
-        self._name = value.strip()
-
+    """ Сравнение двух моделей компании """
     def __eq__(self, other):
-        if not isinstance(other, company_model):
-            return False
-        return (self.name == other.name and self.inn == other.inn and
-                self.account == other.account and self.corr_account == other.corr_account and
-                self.bik == other.bik and self.ownership == other.ownership)
+        return isinstance(other, company_model) and self._data == other._data
 
+    """ Отладочное представление объекта """
     def __repr__(self):
-        return f"company_model(name='{self._name}', inn='{self._inn}')"
+        return f"company_model(name='{self._data['name']}', inn='{self._data['inn']}')"
+
