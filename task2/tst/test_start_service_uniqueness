@@ -1,0 +1,41 @@
+"""
+Назначение: проверка уникальности созданных сущностей
+"""
+
+import unittest
+from src.core.storage_repository import storage_repository
+from src.start_service import start_service
+
+
+class TestStartServiceUniqueness(unittest.TestCase):
+    """Тесты для проверки уникальности данных, созданных сервисом start_service"""
+
+    def setUp(self):
+        """Подготовка данных перед тестом"""
+        self.repo = storage_repository()
+        self.service = start_service(self.repo)
+        self.service.create()
+
+    def test_nomenclature_unique_names(self):
+        """Проверяет, что номенклатуры имеют уникальные имена"""
+        names = [n.name for n in self.repo.nomenclatures]
+        self.assertEqual(len(names), len(set(names)), "Обнаружены дубли номенклатуры")
+
+    def test_units_unique_names(self):
+        """Проверяет, что единицы измерения имеют уникальные имена"""
+        names = [u.name for u in self.repo.units]
+        self.assertEqual(len(names), len(set(names)), "Обнаружены дубли единиц измерения")
+
+    def test_groups_unique_names(self):
+        """Проверяет, что группы имеют уникальные имена"""
+        names = [g.name for g in self.repo.groups]
+        self.assertEqual(len(names), len(set(names)), "Обнаружены дубли групп")
+
+    def test_receipts_unique_names(self):
+        """Проверяет, что рецепты имеют уникальные имена"""
+        names = [r.name for r in self.repo.receipts]
+        self.assertEqual(len(names), len(set(names)), "Обнаружены дубли рецептов")
+
+
+if __name__ == "__main__":
+    unittest.main()
