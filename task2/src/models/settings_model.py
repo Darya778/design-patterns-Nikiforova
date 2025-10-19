@@ -3,6 +3,8 @@
 """
 from src.models.company_model import company_model
 from src.core.validator import validator
+from enum import Enum
+from dataclasses import dataclass, field
 
 """ Модель настроек приложения, содержащая организацию """
 class settings_model:
@@ -25,3 +27,15 @@ class settings_model:
 
     def __repr__(self):
         return f"<settings_model(company={repr(self.__company)})>"
+
+class ResponseFormat(Enum):
+    CSV = "CSV"
+    Markdown = "Markdown"
+    JSON = "JSON"
+    XML = "XML"
+
+""" Модель настроек приложения """
+@dataclass
+class SettingsModel:
+    data_source: str = ""
+    response_format: ResponseFormat = ResponseFormat.JSON
