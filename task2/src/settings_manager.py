@@ -7,7 +7,7 @@ import json
 from src.models.company_model import company_model
 from src.models.settings_model import settings_model
 import json
-from models.settings_model import SettingsModel, ResponseFormat
+from src.models.settings_model import SettingsModel, ResponseFormat
 
 """
 Менеджер настроек (Singleton)
@@ -24,9 +24,11 @@ class settings_manager:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, file_name: str = ""):
+    def __init__(self, file_name: str = "", config_path: str = "settings.json"):
         if file_name:
             self.file_name = file_name
+            self.config_path = config_path
+            self.settings: SettingsModel | None = None
 
     """ Возвращает текущие настройки """
     @property
@@ -99,12 +101,6 @@ class settings_manager:
             if field in data and data[field]:
                 setattr(comp, field, data[field])
         return comp
-
-""" Менеджер загрузки и хранения настроек приложения """
-class SettingsManager:
-    def __init__(self, config_path: str = "settings.json"):
-        self.config_path = config_path
-        self.settings: SettingsModel | None = None
 
     """ Загружает настройки из JSON-файла """
     def load_settings(self):
