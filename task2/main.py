@@ -36,16 +36,10 @@ def get_data():
 
     factory = factory_entities(settings)
 
-    if entity_type == "nomenclature":
-        data = [n.to_dict() for n in repo.nomenclatures]
-    elif entity_type == "unit":
-        data = [u.to_dict() for u in repo.units]
-    elif entity_type == "group":
-        data = [g.to_dict() for g in repo.groups]
-    elif entity_type == "receipt":
-        data = [r.to_dict() for r in repo.receipts]
-    else:
-        return Response(f"Unknown type: {entity_type}", status=400)
+    if entity_type not in repo.data:
+        raise ValueError(f"Неизвестный тип данных: {entity_type}")
+
+    data = [item.to_dict() for item in repo.data[entity_type]]
 
     response = factory.create_default(data)
 
