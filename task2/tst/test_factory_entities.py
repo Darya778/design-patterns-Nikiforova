@@ -1,41 +1,39 @@
 import unittest
-from src.models.settings_model import SettingsModel, ResponseFormat
-from src.core.factory_entities import FactoryEntities
+from src.models.settings_model import settings_model, ResponseFormat
+from src.logics.factory_entities import factory_entities
 
 """ Набор модульных тестов для проверки корректности работы фабрики форматов """
-class TestFactoryEntities(unittest.TestCase):
+class test_factory_entities(unittest.TestCase):
 
     """ Подготовка тестовых данных """
     def setUp(self):
-        self.data = [
-            {"id": 1, "name": "Item1"},
-            {"id": 2, "name": "Item2"}
-        ]
+        self.data = [{"name": "Тест", "unit": "грамм"}]
 
     """ Проверка генерации Markdown-таблицы """
-    def test_markdown_format(self):
-        settings = SettingsModel(response_format=ResponseFormat.Markdown)
-        factory = FactoryEntities(settings)
+    def test_create_default_returns_markdown(self):
+        settings = settings_model(response_format=ResponseFormat.Markdown)
+        factory = factory_entities(settings)
         result = factory.create_default(self.data)
-        self.assertIn("| id | name |", result)
+        self.assertIn("# Тест", result)
+        self.assertIn("**Порций:**", result)
 
     """ Проверка генерации JSON-структуры """
-    def test_json_format(self):
-        settings = SettingsModel(response_format=ResponseFormat.JSON)
-        factory = FactoryEntities(settings)
+    def test_create_default_returns_json(self):
+        settings = settings_model(response_format=ResponseFormat.JSON)
+        factory = factory_entities(settings)
         result = factory.create_default(self.data)
         self.assertTrue(result.strip().startswith("["))
 
     """Проверка генерации XML-документа."""
-    def test_xml_format(self):
-        settings = SettingsModel(response_format=ResponseFormat.XML)
-        factory = FactoryEntities(settings)
+    def test_create_default_returns_xml(self):
+        settings = settings_model(response_format=ResponseFormat.XML)
+        factory = factory_entities(settings)
         result = factory.create_default(self.data)
         self.assertIn("<Item>", result)
 
     """ Проверка генерации CSV-таблицы """
-    def test_csv_format(self):
-        settings = SettingsModel(response_format=ResponseFormat.CSV)
-        factory = FactoryEntities(settings)
+    def test_create_default_returns_csv(self):
+        settings = settings_model(response_format=ResponseFormat.CSV)
+        factory = factory_entities(settings)
         result = factory.create_default(self.data)
-        self.assertIn("id,name", result)
+        self.assertIn("name", result)
