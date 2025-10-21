@@ -6,36 +6,23 @@ from src.core.validator import validator
 from enum import Enum
 from dataclasses import dataclass, field
 
-""" Модель настроек приложения, содержащая организацию """
-class settings_model:
-    __company: company_model = None
-
-    def __init__(self, company: company_model = None):
-        if company is not None:
-            self.company = company
-
-    """ Текущая организация """
-    @property
-    def company(self) -> company_model:
-        return self.__company
-
-    """ Устанавливает организацию с проверкой валидности """
-    @company.setter
-    def company(self, value: company_model):
-        validator.validate(value, company_model)
-        self.__company = value
-
-    def __repr__(self):
-        return f"<settings_model(company={repr(self.__company)})>"
-
 class ResponseFormat(Enum):
     CSV = "CSV"
-    Markdown = "Markdown"
+    Markdown = "md"
     JSON = "JSON"
     XML = "XML"
 
 """ Модель настроек приложения """
 @dataclass
-class SettingsModel:
+class settings_model:
     data_source: str = ""
     response_format: ResponseFormat = ResponseFormat.JSON
+    company: company_model | None = None
+
+    """ Устанавливает текущую компанию с проверкой валидности """
+    def set_company(self, company_obj: company_model):
+        validator.validate(company_obj, company_model)
+        self.company = company_obj
+
+    def __repr__(self):
+        return f"<settings_model(company={repr(self.company)}, format={self.response_format.value})>"
