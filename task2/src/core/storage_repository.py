@@ -12,6 +12,13 @@ class storage_repository:
         self.units = []
         self.groups = []
         self.receipts = []
+        self.data = {
+            "nomenclature": self.nomenclatures,
+            "unit": self.units,
+            "group": self.groups,
+            "receipt": self.receipts
+        }
+
 
     def add_nomenclature(self, item):
         self.nomenclatures.append(item)

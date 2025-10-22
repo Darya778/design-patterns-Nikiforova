@@ -1,0 +1,12 @@
+{
+  "data_source": "local",
+  "response_format": "json",
+  "company": {
+    "name": "Рога и Копыта",
+    "inn": "1234567890",
+    "account": "40702810900000000001",
+    "corr_account": "30101810400000000225",
+    "bik": "044525225",
+    "ownership": "ООО"
+  }
+}

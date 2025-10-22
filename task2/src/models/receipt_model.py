@@ -11,7 +11,8 @@ class receipt_model:
     Содержит данные о названии, ингредиентах, единице измерения и группе.
     """
 
-    def __init__(self, name: str, ingredients: list, unit: str, group: str):
+    def __init__(self, name: str, ingredients: list, unit: str, group: str,
+                 author: str = "Неизвестен", portions: int = 1, steps: list = None):
         """
         Инициализация модели рецепта
 
@@ -19,6 +20,9 @@ class receipt_model:
         :param ingredients: список ингредиентов (объекты nomenclature_model)
         :param unit: единица измерения
         :param group: группа рецепта
+        :param author: автор рецепта
+        :param portions: количество порций
+        :param steps: шаги приготовления
         """
 
         try:
@@ -26,6 +30,10 @@ class receipt_model:
             validator.validate(unit, str)
             validator.validate(group, str)
             validator.validate(ingredients, list)
+            validator.validate(author, str)
+            validator.validate(portions, int)
+            if steps is not None:
+                validator.validate(steps, list)
         except argument_exception:
             raise argument_exception("Неверные аргументы при создании рецепта")
 
@@ -33,6 +41,11 @@ class receipt_model:
         self.__ingredients = ingredients
         self.__unit = unit
         self.__group = group
+        self.__author = author
+        self.__portions = portions
+        self.__steps = steps or []  # если None — создаем пустой список
+
+    # --- Свойства ---
 
     @property
     def name(self) -> str:
@@ -74,5 +87,48 @@ class receipt_model:
         validator.validate(value, str)
         self.__group = value
 
+    @property
+    def author(self) -> str:
+        """Автор рецепта"""
+        return self.__author
+
+    @author.setter
+    def author(self, value: str):
+        validator.validate(value, str)
+        self.__author = value
+
+    @property
+    def portions(self) -> int:
+        """Количество порций"""
+        return self.__portions
+
+    @portions.setter
+    def portions(self, value: int):
+        validator.validate(value, int)
+        self.__portions = value
+
+    @property
+    def steps(self) -> list:
+        """Пошаговое приготовление"""
+        return self.__steps
+
+    @steps.setter
+    def steps(self, value: list):
+        validator.validate(value, list)
+        self.__steps = value
+
+
     def __repr__(self):
         return f"<Receipt name={self.__name}, ingredients={len(self.__ingredients)}, unit={self.__unit}, group={self.__group}>"
+
+    """ Преобразование модели рецепта в словарь для форматтеров (CSV, JSON, XML, MD) """
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "group": self.group,
+            "unit": self.unit,
+            "author": self.author,
+            "portions": self.portions,
+            "ingredients": [i.name if hasattr(i, "name") else str(i) for i in self.ingredients],
+            "steps": [str(s) for s in self.steps] if self.steps else [],
+        }
