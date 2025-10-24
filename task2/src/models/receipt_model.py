@@ -11,8 +11,9 @@ class receipt_model:
     Содержит данные о названии, ингредиентах, единице измерения и группе.
     """
 
-    def __init__(self, name: str, ingredients: list, unit: str, group: str,
-                 author: str = "Неизвестен", portions: int = 1, steps: list = None):
+    def __init__(self, name: str, ingredients: list, unit: str, group: str, author: str = "Неизвестен",
+                 portions: int = 1, steps: list = None,
+                 code: str = None):
         """
         Инициализация модели рецепта
 
@@ -23,6 +24,7 @@ class receipt_model:
         :param author: автор рецепта
         :param portions: количество порций
         :param steps: шаги приготовления
+        :param code код рецепта
         """
 
         try:
@@ -34,6 +36,8 @@ class receipt_model:
             validator.validate(portions, int)
             if steps is not None:
                 validator.validate(steps, list)
+            if code is not None:
+                validator.validate(code, str)
         except argument_exception:
             raise argument_exception("Неверные аргументы при создании рецепта")
 
@@ -43,7 +47,8 @@ class receipt_model:
         self.__group = group
         self.__author = author
         self.__portions = portions
-        self.__steps = steps or []  # если None — создаем пустой список
+        self.__steps = steps or []
+        self.__code = code or name[:3].upper()
 
     # --- Свойства ---
 
@@ -117,6 +122,11 @@ class receipt_model:
         validator.validate(value, list)
         self.__steps = value
 
+    @property
+    def code(self) -> str:
+        """Код рецепта"""
+        return self.__code
+
 
     def __repr__(self):
         return f"<Receipt name={self.__name}, ingredients={len(self.__ingredients)}, unit={self.__unit}, group={self.__group}>"
@@ -131,4 +141,5 @@ class receipt_model:
             "portions": self.portions,
             "ingredients": [i.name if hasattr(i, "name") else str(i) for i in self.ingredients],
             "steps": [str(s) for s in self.steps] if self.steps else [],
+            "code": self.code,
         }
