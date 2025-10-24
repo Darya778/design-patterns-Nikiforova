@@ -18,18 +18,20 @@ class receipt_personal_model(receipt_model):
         group: str,
         author: str = "Неизвестен",
         portions: int = 1,
-        steps: list[str] | None = None
+        steps: list[str] | None = None,
+        code: str | None = None
     ):
         """
         :param author: автор рецепта
         :param portions: количество порций
         :param steps: список шагов приготовления
+        :param code: уникальный код рецепта
         """
         validator.validate(author, str)
         validator.validate(portions, int)
         validator.validate(steps if steps is not None else [], list)
 
-        super().__init__(name, ingredients, unit, group)
+        super().__init__(name, ingredients, unit, group, author, portions, steps, code)
 
         self.author = author
         self.portions = portions
@@ -45,4 +47,5 @@ class receipt_personal_model(receipt_model):
         base["author"] = self.author
         base["portions"] = self.portions
         base["steps"] = self.steps
+        base["code"] = self.code
         return base
