@@ -1,60 +1,67 @@
 from datetime import datetime
+from collections import OrderedDict
 from src.core.convertors import basic_convertor, datetime_convertor, reference_convertor
 
-"""
-Фабрика для определения подходящего конвертора и выполнения конверсии объекта
-"""
+
 class convert_factory:
+    """
+    Универсальная фабрика для конвертации объектов разных типов в словари.
+    Реализует рекурсивную обработку и сортировку ключей для читаемого JSON.
+    """
     def __init__(self):
-        self._basic = basic_convertor()
-        self._datetime = datetime_convertor()
-        self._reference = reference_convertor()
+        self._registry = {
+            "basic": basic_convertor(),
+            "datetime": datetime_convertor(),
+            "reference": reference_convertor()
+        }
 
-    def convert(self, obj: any) -> dict:
+        self._preferred_order = [
+            "code", "unique_code", "name", "group", "author",
+            "unit", "portions", "ingredients", "steps"
+        ]
+
+    def convert(self, obj: any):
+        if obj is None:
+            return None
+
+        if isinstance(obj, (int, float, str, bool)):
+            return self._registry["basic"].convert(obj)
+
+        if isinstance(obj, datetime):
+            return self._registry["datetime"].convert(obj)
+
+        if isinstance(obj, list):
+            return [self.convert(i) for i in obj]
+
+        if isinstance(obj, dict):
+            data = {k: self.convert(v) for k, v in obj.items()}
+            return self._sort_keys(data)
+
+        if hasattr(obj, "code") or hasattr(obj, "id") or hasattr(obj, "__class__"):
+            data = self._registry["reference"].convert(obj)
+            return self._sort_keys(data)
+
+        if hasattr(obj, "__dict__"):
+            data = {k: self.convert(v) for k, v in vars(obj).items()}
+            return self._sort_keys(data)
+
+        return str(obj)
+
+    def _sort_keys(self, data: dict) -> dict:
         """
-        Определяет тип объекта и вызывает соответствующий конвертор.
-        :param obj: любой объект
-        :return: dict
+        Упорядочивает словарь по логике бизнес-объекта:
+        сначала ключи из _preferred_order, потом остальные.
         """
+        ordered = OrderedDict()
+        for key in self._preferred_order:
+            if key in data:
+                ordered[key] = data[key]
 
-        if isinstance(obj, (int, float, str)):
-            return self._basic.convert(obj)
+        for k, v in data.items():
+            if k not in ordered:
+                ordered[k] = v
 
-        elif isinstance(obj, datetime):
-            return self._datetime.convert(obj)
+        return ordered
 
-        elif hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
-            data = obj.to_dict()
-            return {k: self._convert_value(v) for k, v in data.items()}
-
-        elif hasattr(obj, "code") and hasattr(obj, "name"):
-            return self._reference.convert(obj)
-
-        elif isinstance(obj, dict):
-            return {k: self._convert_value(v) for k, v in obj.items()}
-
-        elif isinstance(obj, list):
-            return {"items": [self._convert_value(i) for i in obj]}
-
-        raise TypeError(f"Unsupported object type: {type(obj)}")
-
-    def _convert_value(self, value):
-        """Рекурсивная конвертация значения."""
-        if isinstance(value, (int, float, str)):
-            return value
-        elif isinstance(value, datetime):
-            return value.isoformat()
-        elif hasattr(value, "to_dict"):
-            return self.convert(value)
-        elif hasattr(value, "code") and hasattr(value, "name"):
-            return self._reference.convert(value)
-        elif isinstance(value, list):
-            return [self._convert_value(v) for v in value]
-        elif isinstance(value, dict):
-            return {k: self._convert_value(v) for k, v in value.items()}
-        else:
-            return str(value)
-
-    def convert_collection(self, items: list) -> list:
-        """Конвертирует список объектов в список словарей."""
+    def convert_collection(self, items: list):
         return [self.convert(i) for i in items]
