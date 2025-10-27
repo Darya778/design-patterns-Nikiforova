@@ -5,7 +5,6 @@ from datetime import datetime
 Абстрактный класс конвертора
 """
 class abstract_covertor(ABC):
-
     @abstractmethod
     def convert(self, obj: any) -> any:
         """
@@ -21,8 +20,8 @@ class abstract_covertor(ABC):
 Возвращает значение напрямую, чтобы JSON был читаемым
 """
 class basic_convertor(abstract_covertor):
-    def convert(self, obj: any) -> int | float | str:
-        if isinstance(obj, (int, float, str)):
+    def convert(self, obj: any):
+        if isinstance(obj, (int, float, str, bool)):
             return obj
         raise TypeError(f"Unsupported type for basic_convertor: {type(obj)}")
 
@@ -32,7 +31,7 @@ class basic_convertor(abstract_covertor):
 Возвращает ISO-строку
 """
 class datetime_convertor(abstract_covertor):
-    def convert(self, obj: any) -> str:
+    def convert(self, obj: any):
         if isinstance(obj, datetime):
             return obj.isoformat()
         raise TypeError(f"Unsupported type for datetime_convertor: {type(obj)}")
@@ -43,9 +42,16 @@ class datetime_convertor(abstract_covertor):
 """
 class reference_convertor(abstract_covertor):
     def convert(self, obj: any) -> dict:
-        if hasattr(obj, "code") and hasattr(obj, "name"):
-            return {
-                "code": getattr(obj, "code"),
-                "name": getattr(obj, "name")
-            }
-        raise TypeError(f"Unsupported object for reference_convertor: {type(obj)}")
+        from src.logics.convert_factory import convert_factory
+        factory = convert_factory()
+        result = {}
+
+        for attr, value in vars(obj).items():
+            clean_name = attr.split("__")[-1] if "__" in attr else attr
+
+            if callable(value):
+                continue
+
+            result[clean_name] = factory.convert(value)
+
+        return result
