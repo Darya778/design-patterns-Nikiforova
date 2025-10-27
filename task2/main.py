@@ -72,7 +72,7 @@ def get_reference(entity_type: str):
     converter = convert_factory()
     result = converter.convert_collection(repo.data[entity_type])
 
-    return Response(json.dumps(result, ensure_ascii=False), mimetype="application/json", status=200)
+    return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json", status=200)
 
 
 """
@@ -90,7 +90,7 @@ def get_receipts():
     converter = convert_factory()
     receipts = converter.convert_collection(repo.data["receipt"])
 
-    return Response(json.dumps(receipts, ensure_ascii=False), mimetype="application/json", status=200)
+    return Response(json.dumps(receipts, ensure_ascii=False, indent=2), mimetype="application/json", status=200)
 
 
 """
@@ -99,25 +99,20 @@ def get_receipts():
 """
 @app.route("/api/receipt", methods=["GET"])
 def get_receipt():
-    code = request.args.get("code")
-    if not code:
-        return jsonify({"error": "Parameter 'code' is required"}), 400
+    code = request.args.get("code", "").upper()
 
     repo = storage_repository()
     service = start_service(repo)
     service.create()
 
-    if "receipt" not in repo.data:
-        return jsonify({"error": "Receipt data not found"}), 404
-
-    receipt = next((r for r in repo.data["receipt"] if getattr(r, "code", None) == code), None)
+    receipt = next((r for r in repo.data.get("receipt", []) if getattr(r, "code", None) == code), None)
     if not receipt:
-        return jsonify({"error": f"Receipt with code '{code}' not found"}), 404
+        return {"error": f"Receipt with code '{code}' not found"}, 404
 
-    converter = convert_factory()
-    result = converter.convert(receipt)
+    factory = convert_factory()
+    result = factory.convert(receipt)
 
-    return Response(json.dumps(result, ensure_ascii=False), mimetype="application/json", status=200)
+    return Response(json.dumps(result, ensure_ascii=False, indent=2), status=200, mimetype="application/json")
 
 
 if __name__ == "__main__":
