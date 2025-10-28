@@ -1,10 +1,13 @@
 import connexion
-from flask import request, Response
+from flask import request, Response, jsonify
+from datetime import datetime
+import json
 
 from src.core.storage_repository import storage_repository
 from src.start_service import start_service
 from src.settings_manager import settings_manager
 from src.logics.factory_entities import factory_entities
+from src.logics.convert_factory import convert_factory
 
 
 app = connexion.FlaskApp(__name__)
@@ -16,6 +19,7 @@ app = connexion.FlaskApp(__name__)
 @app.route("/api/accessibility", methods=["GET"])
 def accessibility():
     return "SUCCESS"
+
 
 """
 Маршрут для получения данных в выбранном формате
@@ -40,7 +44,6 @@ def get_data():
         raise ValueError(f"Неизвестный тип данных: {entity_type}")
 
     data = [item.to_dict() for item in repo.data[entity_type]]
-
     response = factory.create_default(data)
 
     mime = {
@@ -51,6 +54,65 @@ def get_data():
     }.get(fmt, "text/plain")
 
     return Response(response, status=200, mimetype=mime)
+
+
+"""
+Возвращает справочник в JSON, используя convert_factory
+Пример: /api/reference/nomenclature
+"""
+@app.route("/api/reference/<entity_type>", methods=["GET"])
+def get_reference(entity_type: str):
+    repo = storage_repository()
+    service = start_service(repo)
+    service.create()
+
+    if entity_type not in repo.data:
+        return jsonify({"error": f"Unknown entity type: {entity_type}"}), 404
+
+    converter = convert_factory()
+    result = converter.convert_collection(repo.data[entity_type])
+
+    return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json", status=200)
+
+
+"""
+Возвращает список рецептов (в JSON)
+"""
+@app.route("/api/receipts", methods=["GET"])
+def get_receipts():
+    repo = storage_repository()
+    service = start_service(repo)
+    service.create()
+
+    if "receipt" not in repo.data:
+        return jsonify({"error": "Receipt data not found"}), 404
+
+    converter = convert_factory()
+    receipts = converter.convert_collection(repo.data["receipt"])
+
+    return Response(json.dumps(receipts, ensure_ascii=False, indent=2), mimetype="application/json", status=200)
+
+
+"""
+Возвращает конкретный рецепт по коду
+Пример: /api/receipt?code=RC100
+"""
+@app.route("/api/receipt", methods=["GET"])
+def get_receipt():
+    code = request.args.get("code", "").upper()
+
+    repo = storage_repository()
+    service = start_service(repo)
+    service.create()
+
+    receipt = next((r for r in repo.data.get("receipt", []) if getattr(r, "code", None) == code), None)
+    if not receipt:
+        return {"error": f"Receipt with code '{code}' not found"}, 404
+
+    factory = convert_factory()
+    result = factory.convert(receipt)
+
+    return Response(json.dumps(result, ensure_ascii=False, indent=2), status=200, mimetype="application/json")
 
 
 if __name__ == "__main__":
