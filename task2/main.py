@@ -1,14 +1,15 @@
 import connexion
 from flask import request, Response, jsonify
-from datetime import datetime
+from datetime import datetime, date
 import json
+import os
 
 from src.core.storage_repository import storage_repository
 from src.start_service import start_service
 from src.settings_manager import settings_manager
 from src.logics.factory_entities import factory_entities
 from src.logics.convert_factory import convert_factory
-
+from src.logics.osv_service import compute_osv
 
 app = connexion.FlaskApp(__name__)
 
@@ -43,7 +44,7 @@ def get_data():
     if entity_type not in repo.data:
         raise ValueError(f"Неизвестный тип данных: {entity_type}")
 
-    data = [item.to_dict() for item in repo.data[entity_type]]
+    data = [item.to_dict() if hasattr(item, "to_dict") else item for item in repo.data[entity_type]]
     response = factory.create_default(data)
 
     mime = {
@@ -59,6 +60,7 @@ def get_data():
 """
 Возвращает справочник в JSON, используя convert_factory
 Пример: /api/reference/nomenclature
+Теперь поддерживает также 'warehouse' и 'transaction'
 """
 @app.route("/api/reference/<entity_type>", methods=["GET"])
 def get_reference(entity_type: str):
@@ -113,6 +115,72 @@ def get_receipt():
     result = factory.convert(receipt)
 
     return Response(json.dumps(result, ensure_ascii=False, indent=2), status=200, mimetype="application/json")
+
+
+"""
+GET /api/report/osv?start=YYYY-MM-DD&end=YYYY-MM-DD&warehouse=W1
+Возвращает JSON список строк ОСВ
+"""
+@app.route("/api/report/osv", methods=["GET"])
+def api_report_osv():
+    start_s = request.args.get("start")
+    end_s = request.args.get("end")
+    warehouse_id = request.args.get("warehouse")  # optional
+
+    if not start_s or not end_s:
+        return jsonify({"error": "start and end parameters required, format YYYY-MM-DD"}), 400
+
+    try:
+        start_date = datetime.fromisoformat(start_s).date()
+        end_date = datetime.fromisoformat(end_s).date()
+    except Exception:
+        return jsonify({"error": "Bad date format, expected YYYY-MM-DD"}), 400
+
+    repo = storage_repository()
+    service = start_service(repo)
+    service.create()
+
+    rows = compute_osv_result_for_response(repo=repo, start_date=start_date, end_date=end_date, warehouse_id=warehouse_id)
+    return Response(json.dumps(rows, ensure_ascii=False, indent=2), mimetype="application/json", status=200)
+
+
+def compute_osv_result_for_response(repo, start_date, end_date, warehouse_id):
+    rows = compute_osv(repo, start_date, end_date, warehouse_id)
+    rows = sorted(rows, key=lambda r: (r.get("nomenclature_name") or "", r.get("nomenclature_id") or ""))
+    return rows
+
+
+"""
+POST /api/data/save
+Сохраняет все коллекции из репозитория в JSON-файлы в папке 'data_out'
+Тело запроса не обязательно. Возвращает список сохранённых файлов
+"""
+@app.route("/api/data/save", methods=["GET", "POST"])
+def api_save_data_to_files():
+    repo = storage_repository()
+    service = start_service(repo)
+    service.create()
+
+    out_dir = os.path.abspath("data_out")
+    os.makedirs(out_dir, exist_ok=True)
+
+    saved = []
+    for key, collection in repo.data.items():
+        filename = f"{key}.json"
+        path = os.path.join(out_dir, filename)
+        serial = []
+        for item in collection:
+            if hasattr(item, "to_dict"):
+                serial.append(item.to_dict())
+            elif isinstance(item, dict):
+                serial.append(item)
+            else:
+                serial.append(getattr(item, "__dict__", str(item)))
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(serial, f, ensure_ascii=False, indent=2)
+        saved.append(path)
+
+    return Response(json.dumps({"saved_files": saved}, ensure_ascii=False, indent=2), mimetype="application/json", status=200)
 
 
 if __name__ == "__main__":
