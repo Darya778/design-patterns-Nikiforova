@@ -139,16 +139,20 @@ class start_service:
 
     def __create_warehouses(self):
         """Создает справочник складов"""
-        for name in ("Основной склад", "Резервный склад"):
-            self.storage.add_warehouse(warehouse_model(name))
+        self.storage.add_warehouse(warehouse_model("Основной склад", code="MAIN"))
+        self.storage.add_warehouse(warehouse_model("Резервный склад", code="RES"))
 
     def __create_transactions(self):
         """Создает примерные транзакции"""
+        nom = {n.name: n for n in self.storage.nomenclatures}
+        wh = {w.name: w for w in self.storage.warehouses}
+        units = {u.name: u for u in self.storage.units}
+
         txs = [
-            transaction_model("T001", "Мука", "Основной склад", 5000, "грамм", date(2025, 1, 1)),
-            transaction_model("T002", "Мука", "Основной склад", -1500, "грамм", date(2025, 1, 10)),
-            transaction_model("T003", "Молоко", "Основной склад", 8, "литр", date(2025, 1, 5)),
-            transaction_model("T004", "Сахар", "Резервный склад", 2000, "грамм", date(2025, 1, 3))
+            transaction_model("T001", nom["Мука"], wh["Основной склад"], 5000, units["грамм"], date(2025, 1, 1)),
+            transaction_model("T002", nom["Мука"], wh["Основной склад"], -1500, units["грамм"], date(2025, 1, 10)),
+            transaction_model("T003", nom["Молоко"], wh["Основной склад"], 8, units["литр"], date(2025, 1, 5)),
+            transaction_model("T004", nom["Сахар"], wh["Резервный склад"], 2000, units["грамм"], date(2025, 1, 3))
         ]
         for t in txs:
             self.storage.add_transaction(t)
