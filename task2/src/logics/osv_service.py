@@ -9,26 +9,48 @@ def warehouse_match(tx_warehouse, requested):
         return True
     if not tx_warehouse:
         return False
-    return requested.lower() in tx_warehouse.lower()
+    requested = requested.lower()
+    return (
+        requested in tx_warehouse.name.lower()
+        or requested == getattr(tx_warehouse, "code", "").lower()
+    )
+
 
 """
 Формирует оборотно-сальдовую ведомость
 """
-def compute_osv(repo, start_date: date, end_date: date, warehouse: str = None):
+def compute_osv(repo, start_date, end_date, warehouse: str = None):
     txs = repo.transactions
-    noms = [n.name for n in repo.nomenclatures]
+    noms = repo.nomenclatures
 
     result = []
     for n in noms:
         filt = [t for t in txs if t.nomenclature == n and warehouse_match(t.warehouse, warehouse)]
-        opening = sum(t.quantity for t in filt if t.date < start_date)
-        incoming = sum(t.quantity for t in filt if start_date <= t.date <= end_date and t.quantity > 0)
-        outgoing = -sum(t.quantity for t in filt if start_date <= t.date <= end_date and t.quantity < 0)
+        if not filt:
+            result.append({
+                "Склад": warehouse or "Все склады",
+                "Номенклатура": n.name,
+                "Единица": "",
+                "Начальный остаток": 0,
+                "Приход": 0,
+                "Расход": 0,
+                "Конечный остаток": 0
+            })
+            continue
+
+        opening = sum(t.unit.to_base(t.quantity) for t in filt if t.date < start_date)
+        incoming = sum(t.unit.to_base(t.quantity) for t in filt if start_date <= t.date <= end_date and t.quantity > 0)
+        outgoing = -sum(t.unit.to_base(t.quantity) for t in filt if start_date <= t.date <= end_date and t.quantity < 0)
         closing = opening + incoming - outgoing
-        unit = filt[0].unit if filt else ""
+
+        first_unit = filt[0].unit
+        base_unit = first_unit.base if first_unit.base else first_unit
+        unit_name = base_unit.name
+
         result.append({
-            "Номенклатура": n,
-            "Единица": unit,
+            "Склад": filt[0].warehouse.name,
+            "Номенклатура": n.name,
+            "Единица": unit_name,
             "Начальный остаток": opening,
             "Приход": incoming,
             "Расход": outgoing,
