@@ -156,31 +156,22 @@ POST /api/data/save
 Тело запроса не обязательно. Возвращает список сохранённых файлов
 """
 @app.route("/api/data/save", methods=["GET", "POST"])
-def api_save_data_to_files():
+def save_data():
     repo = storage_repository()
     service = start_service(repo)
     service.create()
 
-    out_dir = os.path.abspath("data_out")
-    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs("data_out", exist_ok=True)
+    path = os.path.join("data_out", "repository.json")
 
-    saved = []
-    for key, collection in repo.data.items():
-        filename = f"{key}.json"
-        path = os.path.join(out_dir, filename)
-        serial = []
-        for item in collection:
-            if hasattr(item, "to_dict"):
-                serial.append(item.to_dict())
-            elif isinstance(item, dict):
-                serial.append(item)
-            else:
-                serial.append(getattr(item, "__dict__", str(item)))
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(serial, f, ensure_ascii=False, indent=2)
-        saved.append(path)
+    full = {}
+    for name, items in repo.data.items():
+        full[name] = [getattr(i, "to_dict", lambda: i.__dict__)() for i in items]
 
-    return Response(json.dumps({"saved_files": saved}, ensure_ascii=False, indent=2), mimetype="application/json", status=200)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(full, f, ensure_ascii=False, indent=2)
+
+    return jsonify({"saved_file": path})
 
 
 if __name__ == "__main__":
