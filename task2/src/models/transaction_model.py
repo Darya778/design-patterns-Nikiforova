@@ -3,22 +3,30 @@
 """
 
 from datetime import date
+from src.models.nomenclature_model import nomenclature_model
+from src.models.warehouse_model import warehouse_model
+from src.models.unit_model import unit_model
+from src.core.validator import validator, argument_exception
+
 
 class transaction_model:
     """
-    Модель Транзакции
-    Отражает движение номенклатуры по складам
+    Транзакция движения номенклатуры по складам
     """
 
-    def __init__(
-        self,
-        number: str,
-        nomenclature: str,
-        warehouse: str,
-        quantity: float,
-        unit: str,
-        date_: date
-    ):
+    def __init__(self, number: str, nomenclature: nomenclature_model,
+                 warehouse: warehouse_model, quantity: float,
+                 unit: unit_model, date_: date):
+        validator.validate(number, str)
+        validator.validate(quantity, (int, float))
+
+        if not isinstance(nomenclature, nomenclature_model):
+            raise argument_exception("nomenclature должен быть экземпляром nomenclature_model")
+        if not isinstance(warehouse, warehouse_model):
+            raise argument_exception("warehouse должен быть экземпляром warehouse_model")
+        if not isinstance(unit, unit_model):
+            raise argument_exception("unit должен быть экземпляром unit_model")
+
         self.number = number
         self.nomenclature = nomenclature
         self.warehouse = warehouse
@@ -26,12 +34,28 @@ class transaction_model:
         self.unit = unit
         self.date = date_
 
+    @property
+    def code(self):
+        """Возвращает уникальный код (равен number)"""
+        return self.number
+
     def to_dict(self):
+        """Полная сериализация для сохранения"""
         return {
             "number": self.number,
-            "nomenclature": self.nomenclature,
-            "warehouse": self.warehouse,
+            "date": self.date.isoformat(),
+            "nomenclature": {
+                "name": self.nomenclature.name,
+                "code": getattr(self.nomenclature, "code", None)
+            },
+            "warehouse": {
+                "name": self.warehouse.name,
+                "code": getattr(self.warehouse, "code", None)
+            },
             "quantity": self.quantity,
-            "unit": self.unit,
-            "date": self.date.isoformat()
+            "unit": {
+                "name": self.unit.name,
+                "factor": self.unit.factor,
+                "base": self.unit.base.name if self.unit.base else None
+            }
         }
