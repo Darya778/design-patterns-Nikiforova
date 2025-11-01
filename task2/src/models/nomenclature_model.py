@@ -56,3 +56,6 @@ class nomenclature_model(abstract_reference):
         if not isinstance(value, unit_model):
             raise argument_exception("unit должен быть экземпляром unit_model")
         self.__unit = value
+
+    def to_dict(self):
+        return {"id": getattr(self, "id", None), "name": self.name}
