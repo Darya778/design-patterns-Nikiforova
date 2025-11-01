@@ -1,0 +1,27 @@
+[
+  {
+    "name": "грамм",
+    "coefficient": 1,
+    "base": null
+  },
+  {
+    "name": "килограмм",
+    "coefficient": 1000,
+    "base": "грамм"
+  },
+  {
+    "name": "литр",
+    "coefficient": 1,
+    "base": null
+  },
+  {
+    "name": "миллилитр",
+    "coefficient": 1000,
+    "base": "литр"
+  },
+  {
+    "name": "штука",
+    "coefficient": 1,
+    "base": null
+  }
+]

@@ -75,3 +75,6 @@ class unit_model(abstract_reference):
         except argument_exception:
             raise
         return value / self.__factor
+
+    def to_dict(self):
+        return {"id": getattr(self, "id", None), "name": self.name, "factor": self.factor}
