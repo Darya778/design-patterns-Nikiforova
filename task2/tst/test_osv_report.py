@@ -12,6 +12,7 @@ from src.logics.osv_service import compute_osv
 Тест с генерацией PNG
 """
 class TestOSVReport(unittest.TestCase):
+
     def setUp(self):
         self.repo = storage_repository()
         svc = start_service(self.repo)
@@ -22,30 +23,60 @@ class TestOSVReport(unittest.TestCase):
         end = date(2025, 1, 31)
         osv = compute_osv(self.repo, start, end, warehouse="Основной склад")
 
-        noms = [r["Номенклатура"] for r in osv]
-        self.assertIn("Мука", noms)
-        muka = next(r for r in osv if r["Номенклатура"] == "Мука")
-        self.assertGreaterEqual(muka["Приход"], 0)
+        noms = [r["Номенклатура"]["name"] for r in osv]
+        self.assertIn("Мука", noms, "ОСВ должна содержать номенклатуру 'Мука'")
+
+        muka = next(r for r in osv if r["Номенклатура"]["name"] == "Мука")
+        self.assertGreaterEqual(muka["Приход"], 0, "Приход по 'Мука' должен быть неотрицательным")
+
+        df = pd.DataFrame([
+            {
+                "Номенклатура": r["Номенклатура"].get("name", ""),
+                "Ед. изм.": r["Единица"].get("name", "") if isinstance(r["Единица"], dict) else r["Единица"],
+                "Нач. остаток": r["Начальный остаток"],
+                "Приход": r["Приход"],
+                "Расход": r["Расход"],
+                "Кон. остаток": r["Конечный остаток"]
+            }
+            for r in osv
+        ])
 
         out_dir = os.path.abspath("data_out")
         os.makedirs(out_dir, exist_ok=True)
         out_path = os.path.join(out_dir, "osv_report.png")
 
-        df = pd.DataFrame(osv)
-        fig, ax = plt.subplots(figsize=(8, 1 + 0.5 * len(df)))
+        fig, ax = plt.subplots(figsize=(9, 1 + 0.5 * len(df)))
         ax.axis('off')
-        tbl = ax.table(cellText=df[["Номенклатура", "Единица", "Начальный остаток",
-                                   "Приход", "Расход", "Конечный остаток"]].values,
-                       colLabels=["Номенклатура", "Ед.", "Начальный остаток", "Приход", "Расход", "Конечный остаток"],
-                       loc='center')
-        tbl.auto_set_font_size(False)
-        tbl.set_fontsize(10)
-        tbl.scale(1, 1.2)
-        plt.title(f'ОСВ с {start.isoformat()} по {end.isoformat()}, Склад: Основной склад', pad=12)
-        plt.savefig(out_path, bbox_inches='tight', dpi=150)
+
+        table = ax.table(
+            cellText=df.values,
+            colLabels=df.columns,
+            loc='center',
+            cellLoc='center'
+        )
+
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1.2, 1.4)
+
+        for (row, col), cell in table.get_celld().items():
+            if row == 0:
+                cell.set_text_props(weight='bold', color='white')
+                cell.set_facecolor('#4a90e2')
+            else:
+                cell.set_facecolor('#f9f9f9')
+
+        plt.title(
+            f"ОСВ с {start.isoformat()} по {end.isoformat()}, Склад: Основной склад",
+            fontsize=12,
+            fontweight='bold',
+            pad=14
+        )
+
+        plt.savefig(out_path, bbox_inches='tight', dpi=200)
         plt.close(fig)
 
-        self.assertTrue(os.path.exists(out_path), f"Ожидается файл отчёта {out_path}")
+        self.assertTrue(os.path.exists(out_path), f"Файл отчёта {out_path} должен быть создан")
 
 
 if __name__ == "__main__":
