@@ -14,7 +14,4 @@ class warehouse_model(abstract_reference):
         return name[:3].upper().replace(" ", "")
 
     def to_dict(self):
-        return {
-            "name": self.name,
-            "code": self.code
-        }
+        return {"id": getattr(self, "id", None), "name": self.name, "code": getattr(self, "code", None)}
