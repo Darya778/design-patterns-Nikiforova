@@ -1,46 +1,51 @@
 {
   "nomenclature": [
     {
+      "id": null,
       "name": "Мука"
     },
     {
+      "id": null,
       "name": "Молоко"
     },
     {
+      "id": null,
       "name": "Сахар"
     },
     {
+      "id": null,
       "name": "Яйца"
     },
     {
+      "id": null,
       "name": "Масло сливочное"
     }
   ],
   "unit": [
     {
+      "id": null,
       "name": "грамм",
-      "coefficient": 1,
-      "base": null
+      "factor": 1
     },
     {
+      "id": null,
       "name": "килограмм",
-      "coefficient": 1000,
-      "base": "грамм"
+      "factor": 1000
     },
     {
+      "id": null,
       "name": "литр",
-      "coefficient": 1,
-      "base": null
+      "factor": 1
     },
     {
+      "id": null,
       "name": "миллилитр",
-      "coefficient": 1000,
-      "base": "литр"
+      "factor": 1000
     },
     {
+      "id": null,
       "name": "штука",
-      "coefficient": 1,
-      "base": null
+      "factor": 1
     }
   ],
   "group": [
@@ -112,10 +117,12 @@
   ],
   "warehouse": [
     {
+      "id": null,
       "name": "Основной склад",
       "code": "MAIN"
     },
     {
+      "id": null,
       "name": "Резервный склад",
       "code": "RES"
     }
