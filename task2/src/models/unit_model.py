@@ -77,8 +77,4 @@ class unit_model(abstract_reference):
         return value / self.__factor
 
     def to_dict(self):
-        return {
-            "name": self.name,
-            "coefficient": self.factor,
-            "base": self.base.name if self.base else None
-        }
+        return {"id": getattr(self, "id", None), "name": self.name, "factor": self.factor}
