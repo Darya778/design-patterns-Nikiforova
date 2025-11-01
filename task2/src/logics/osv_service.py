@@ -28,9 +28,9 @@ def compute_osv(repo, start_date, end_date, warehouse: str = None):
         filt = [t for t in txs if t.nomenclature == n and warehouse_match(t.warehouse, warehouse)]
         if not filt:
             result.append({
-                "Склад": warehouse or "Все склады",
-                "Номенклатура": n.name,
-                "Единица": "",
+                "Склад": {"name": warehouse or "Все склады"},
+                "Номенклатура": n.to_dict(),
+                "Единица": {},
                 "Начальный остаток": 0,
                 "Приход": 0,
                 "Расход": 0,
@@ -48,9 +48,9 @@ def compute_osv(repo, start_date, end_date, warehouse: str = None):
         unit_name = base_unit.name
 
         result.append({
-            "Склад": filt[0].warehouse.name,
-            "Номенклатура": n.name,
-            "Единица": unit_name,
+            "Склад": filt[0].warehouse.to_dict(),
+            "Номенклатура": n.to_dict(),
+            "Единица": base_unit.to_dict() if base_unit else {},
             "Начальный остаток": opening,
             "Приход": incoming,
             "Расход": outgoing,
