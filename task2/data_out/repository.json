@@ -2,60 +2,133 @@
   "nomenclature": [
     {
       "id": null,
-      "name": "Мука"
+      "name": "Мука",
+      "full_name": "Мука пшеничная",
+      "group": {
+        "id": null,
+        "name": "Бакалея"
+      },
+      "unit": {
+        "id": null,
+        "name": "грамм",
+        "factor": 1,
+        "base": null
+      }
     },
     {
       "id": null,
-      "name": "Молоко"
+      "name": "Молоко",
+      "full_name": "Молоко пастеризованное 3.2%",
+      "group": {
+        "id": null,
+        "name": "Молочные продукты"
+      },
+      "unit": {
+        "id": null,
+        "name": "литр",
+        "factor": 1,
+        "base": null
+      }
     },
     {
       "id": null,
-      "name": "Сахар"
+      "name": "Сахар",
+      "full_name": "Сахар белый",
+      "group": {
+        "id": null,
+        "name": "Бакалея"
+      },
+      "unit": {
+        "id": null,
+        "name": "грамм",
+        "factor": 1,
+        "base": null
+      }
     },
     {
       "id": null,
-      "name": "Яйца"
+      "name": "Яйца",
+      "full_name": "Яйца куриные",
+      "group": {
+        "id": null,
+        "name": "Выпечка"
+      },
+      "unit": {
+        "id": null,
+        "name": "штука",
+        "factor": 1,
+        "base": null
+      }
     },
     {
       "id": null,
-      "name": "Масло сливочное"
+      "name": "Масло сливочное",
+      "full_name": "Масло сливочное 82.5%",
+      "group": {
+        "id": null,
+        "name": "Молочные продукты"
+      },
+      "unit": {
+        "id": null,
+        "name": "грамм",
+        "factor": 1,
+        "base": null
+      }
     }
   ],
   "unit": [
     {
       "id": null,
       "name": "грамм",
-      "factor": 1
+      "factor": 1,
+      "base": null
     },
     {
       "id": null,
       "name": "килограмм",
-      "factor": 1000
+      "factor": 1000,
+      "base": {
+        "id": null,
+        "name": "грамм",
+        "factor": 1,
+        "base": null
+      }
     },
     {
       "id": null,
       "name": "литр",
-      "factor": 1
+      "factor": 1,
+      "base": null
     },
     {
       "id": null,
       "name": "миллилитр",
-      "factor": 1000
+      "factor": 1000,
+      "base": {
+        "id": null,
+        "name": "литр",
+        "factor": 1,
+        "base": null
+      }
     },
     {
       "id": null,
       "name": "штука",
-      "factor": 1
+      "factor": 1,
+      "base": null
     }
   ],
   "group": [
     {
+      "id": null,
       "name": "Молочные продукты"
     },
     {
+      "id": null,
       "name": "Бакалея"
     },
     {
+      "id": null,
       "name": "Выпечка"
     }
   ],
