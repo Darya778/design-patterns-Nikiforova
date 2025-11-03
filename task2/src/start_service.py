@@ -60,13 +60,26 @@ class start_service:
             self.__create_transactions()
 
     def __create_nomenclatures(self):
+        """Создаёт номенклатуры с полными ссылками на группы и единицы измерения"""
+        
+        if not self.storage.groups:
+            self.__create_groups()
+        if not self.storage.units:
+            self.__create_units()
+
+        groups = {g.name: g for g in self.storage.groups}
+        units = {u.name: u for u in self.storage.units}
+
         noms = [
-            nomenclature_model("Мука"),
-            nomenclature_model("Молоко"),
-            nomenclature_model("Сахар"),
-            nomenclature_model("Яйца"),
-            nomenclature_model("Масло сливочное")
+            nomenclature_model("Мука", full_name="Мука пшеничная", group=groups["Бакалея"], unit=units["грамм"]),
+            nomenclature_model("Молоко", full_name="Молоко пастеризованное 3.2%", group=groups["Молочные продукты"],
+                               unit=units["литр"]),
+            nomenclature_model("Сахар", full_name="Сахар белый", group=groups["Бакалея"], unit=units["грамм"]),
+            nomenclature_model("Яйца", full_name="Яйца куриные", group=groups["Выпечка"], unit=units["штука"]),
+            nomenclature_model("Масло сливочное", full_name="Масло сливочное 82.5%", group=groups["Молочные продукты"],
+                               unit=units["грамм"])
         ]
+
         for n in noms:
             self.storage.add_nomenclature(n)
 
