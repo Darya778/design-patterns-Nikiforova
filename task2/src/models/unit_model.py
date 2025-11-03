@@ -13,7 +13,6 @@ from src.core.validator import validator, argument_exception
     base: ссылка на базовую единицу (unit_model) или None (самая базовая)
 """
 class unit_model(abstract_reference):
-
     __factor: int = 1
     __base: Optional["unit_model"] = None
 
@@ -26,22 +25,16 @@ class unit_model(abstract_reference):
         base: базовая единица (unit_model) или None
     """
     def __init__(self, name: str, factor: int = 1, base: "unit_model" = None):
-
         super().__init__(name)
-        try:
-            validator.validate(factor, int)
-        except argument_exception:
-            raise
+
+        validator.validate(factor, int)
         if factor <= 0:
             raise argument_exception("factor должен быть положительным целым числом")
         self.__factor = factor
 
-        if base is not None:
-            if not isinstance(base, unit_model):
-                raise argument_exception("base должен быть экземпляром unit_model либо None")
-            self.__base = base
-        else:
-            self.__base = None
+        if base is not None and not isinstance(base, unit_model):
+            raise argument_exception("base должен быть экземпляром unit_model или None")
+        self.__base = base
 
     """ Коэффициент пересчёта (в целых единицах относительно базовой) """
     @property
@@ -58,23 +51,20 @@ class unit_model(abstract_reference):
     Если base отсутствует, возвращает value * 1
     """
     def to_base(self, value: float) -> float:
-        try:
-            validator.validate(value, (int, float))  # type: ignore
-        except argument_exception:
-            if not isinstance(value, (int, float)):
-                raise argument_exception("value должен быть числом")
+        validator.validate(value, (int, float))
         return value * self.__factor
 
     """ Перевести значение из базовой единицы в текущую """
     def from_base(self, value: float) -> float:
         if self.__factor == 0:
             raise argument_exception("factor не может быть нулевым")
-        try:
-            if not isinstance(value, (int, float)):
-                raise argument_exception("value должен быть числом")
-        except argument_exception:
-            raise
+        validator.validate(value, (int, float))
         return value / self.__factor
 
     def to_dict(self):
-        return {"id": getattr(self, "id", None), "name": self.name, "factor": self.factor}
+        return {
+            "id": getattr(self, "id", None),
+            "name": self.name,
+            "factor": self.factor,
+            "base": self.__base.to_dict() if self.__base else None
+        }
