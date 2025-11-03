@@ -58,4 +58,10 @@ class nomenclature_model(abstract_reference):
         self.__unit = value
 
     def to_dict(self):
-        return {"id": getattr(self, "id", None), "name": self.name}
+        return {
+            "id": getattr(self, "id", None),
+            "name": self.name,
+            "full_name": getattr(self, "full_name", None),
+            "group": self.__group.to_dict() if self.__group else None,
+            "unit": self.__unit.to_dict() if self.__unit else None
+        }
