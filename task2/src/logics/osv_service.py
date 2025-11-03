@@ -27,10 +27,11 @@ def compute_osv(repo, start_date, end_date, warehouse: str = None):
     for n in noms:
         filt = [t for t in txs if t.nomenclature == n and warehouse_match(t.warehouse, warehouse)]
         if not filt:
+            wh_obj = next((w for w in repo.warehouses if warehouse_match(w, warehouse)), None)
             result.append({
-                "Склад": {"name": warehouse or "Все склады"},
+                "Склад": wh_obj.to_dict() if wh_obj else {"name": warehouse or "Все склады"},
                 "Номенклатура": n.to_dict(),
-                "Единица": {},
+                "Единица": n.unit.to_dict() if n.unit else {},
                 "Начальный остаток": 0,
                 "Приход": 0,
                 "Расход": 0,
