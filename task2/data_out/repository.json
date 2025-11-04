@@ -1,75 +1,75 @@
 {
   "nomenclature": [
     {
-      "id": null,
+      "id": "N-54c237e1",
       "name": "Мука",
       "full_name": "Мука пшеничная",
       "group": {
-        "id": null,
+        "id": "G-22fbd5c5",
         "name": "Бакалея"
       },
       "unit": {
-        "id": null,
+        "id": "U-93643307",
         "name": "грамм",
         "factor": 1,
         "base": null
       }
     },
     {
-      "id": null,
+      "id": "N-4e1dcf3a",
       "name": "Молоко",
       "full_name": "Молоко пастеризованное 3.2%",
       "group": {
-        "id": null,
+        "id": "G-830678a8",
         "name": "Молочные продукты"
       },
       "unit": {
-        "id": null,
+        "id": "U-1f10e222",
         "name": "литр",
         "factor": 1,
         "base": null
       }
     },
     {
-      "id": null,
+      "id": "N-549b42c7",
       "name": "Сахар",
       "full_name": "Сахар белый",
       "group": {
-        "id": null,
+        "id": "G-22fbd5c5",
         "name": "Бакалея"
       },
       "unit": {
-        "id": null,
+        "id": "U-93643307",
         "name": "грамм",
         "factor": 1,
         "base": null
       }
     },
     {
-      "id": null,
+      "id": "N-c029448d",
       "name": "Яйца",
       "full_name": "Яйца куриные",
       "group": {
-        "id": null,
+        "id": "G-d530ce01",
         "name": "Выпечка"
       },
       "unit": {
-        "id": null,
+        "id": "U-5e3ae5a2",
         "name": "штука",
         "factor": 1,
         "base": null
       }
     },
     {
-      "id": null,
+      "id": "N-3e2e1794",
       "name": "Масло сливочное",
       "full_name": "Масло сливочное 82.5%",
       "group": {
-        "id": null,
+        "id": "G-830678a8",
         "name": "Молочные продукты"
       },
       "unit": {
-        "id": null,
+        "id": "U-93643307",
         "name": "грамм",
         "factor": 1,
         "base": null
@@ -78,41 +78,41 @@
   ],
   "unit": [
     {
-      "id": null,
+      "id": "U-93643307",
       "name": "грамм",
       "factor": 1,
       "base": null
     },
     {
-      "id": null,
+      "id": "U-5106e61c",
       "name": "килограмм",
       "factor": 1000,
       "base": {
-        "id": null,
+        "id": "U-93643307",
         "name": "грамм",
         "factor": 1,
         "base": null
       }
     },
     {
-      "id": null,
+      "id": "U-1f10e222",
       "name": "литр",
       "factor": 1,
       "base": null
     },
     {
-      "id": null,
+      "id": "U-99027cc7",
       "name": "миллилитр",
       "factor": 1000,
       "base": {
-        "id": null,
+        "id": "U-1f10e222",
         "name": "литр",
         "factor": 1,
         "base": null
       }
     },
     {
-      "id": null,
+      "id": "U-5e3ae5a2",
       "name": "штука",
       "factor": 1,
       "base": null
@@ -120,157 +120,110 @@
   ],
   "group": [
     {
-      "id": null,
+      "id": "G-830678a8",
       "name": "Молочные продукты"
     },
     {
-      "id": null,
+      "id": "G-22fbd5c5",
       "name": "Бакалея"
     },
     {
-      "id": null,
+      "id": "G-d530ce01",
       "name": "Выпечка"
     }
   ],
-  "receipt": [
-    {
-      "name": "Блины классические",
-      "group": "Выпечка",
-      "unit": "грамм",
-      "author": "Классический рецепт",
-      "portions": 4,
-      "ingredients": [
-        "Мука",
-        "Молоко",
-        "Яйца"
-      ],
-      "steps": [
-        "Смешайте муку, яйца и молоко до однородной массы.",
-        "Добавьте немного соли и сахара по вкусу.",
-        "Обжаривайте блины с двух сторон до золотистого цвета."
-      ],
-      "code": "R001"
-    },
-    {
-      "name": "Панкейки по-домашнему",
-      "group": "Выпечка",
-      "unit": "грамм",
-      "author": "Дарья",
-      "portions": 6,
-      "ingredients": [
-        "Мука",
-        "Сахар",
-        "Яйца"
-      ],
-      "steps": [
-        "Взбейте яйца с сахаром.",
-        "Добавьте муку и перемешайте до густоты.",
-        "Выпекайте на сухой сковороде."
-      ],
-      "code": "R002"
-    },
-    {
-      "name": "Блины с начинкой",
-      "group": "Выпечка",
-      "unit": "грамм",
-      "author": "Учебный пример",
-      "portions": 5,
-      "ingredients": [
-        "Мука",
-        "Молоко",
-        "Масло сливочное"
-      ],
-      "steps": [
-        "Приготовьте тесто для блинов.",
-        "Обжарьте блины и смажьте сливочным маслом.",
-        "Добавьте начинку и сверните."
-      ],
-      "code": "R003"
-    }
-  ],
+  "receipt": [],
   "warehouse": [
     {
-      "id": null,
+      "id": "W-2ad5d57b",
       "name": "Основной склад",
       "code": "MAIN"
     },
     {
-      "id": null,
+      "id": "W-7398a764",
       "name": "Резервный склад",
       "code": "RES"
     }
   ],
   "transaction": [
     {
-      "number": "T001",
+      "id": "TX-28dc80a3",
+      "number": "NO_CODE_TX-28dc80a3",
       "date": "2025-01-01",
       "nomenclature": {
-        "name": "Мука",
-        "code": null
+        "id": "N-54c237e1",
+        "name": "Мука"
       },
       "warehouse": {
+        "id": "W-2ad5d57b",
         "name": "Основной склад",
         "code": "MAIN"
       },
       "quantity": 5000.0,
       "unit": {
+        "id": "U-93643307",
         "name": "грамм",
-        "factor": 1,
-        "base": null
+        "factor": 1
       }
     },
     {
-      "number": "T002",
+      "id": "TX-4529b0f6",
+      "number": "NO_CODE_TX-4529b0f6",
       "date": "2025-01-10",
       "nomenclature": {
-        "name": "Мука",
-        "code": null
+        "id": "N-54c237e1",
+        "name": "Мука"
       },
       "warehouse": {
+        "id": "W-2ad5d57b",
         "name": "Основной склад",
         "code": "MAIN"
       },
       "quantity": -1500.0,
       "unit": {
+        "id": "U-93643307",
         "name": "грамм",
-        "factor": 1,
-        "base": null
+        "factor": 1
       }
     },
     {
-      "number": "T003",
+      "id": "TX-504629ba",
+      "number": "NO_CODE_TX-504629ba",
       "date": "2025-01-05",
       "nomenclature": {
-        "name": "Молоко",
-        "code": null
+        "id": "N-4e1dcf3a",
+        "name": "Молоко"
       },
       "warehouse": {
+        "id": "W-2ad5d57b",
         "name": "Основной склад",
         "code": "MAIN"
       },
       "quantity": 8.0,
       "unit": {
+        "id": "U-1f10e222",
         "name": "литр",
-        "factor": 1,
-        "base": null
+        "factor": 1
       }
     },
     {
-      "number": "T004",
+      "id": "TX-77f16ace",
+      "number": "NO_CODE_TX-77f16ace",
       "date": "2025-01-03",
       "nomenclature": {
-        "name": "Сахар",
-        "code": null
+        "id": "N-549b42c7",
+        "name": "Сахар"
       },
       "warehouse": {
+        "id": "W-7398a764",
         "name": "Резервный склад",
         "code": "RES"
       },
       "quantity": 2000.0,
       "unit": {
+        "id": "U-93643307",
         "name": "грамм",
-        "factor": 1,
-        "base": null
+        "factor": 1
       }
     }
   ]
