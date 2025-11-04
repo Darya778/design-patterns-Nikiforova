@@ -42,20 +42,23 @@ class transaction_model:
     def to_dict(self):
         """Полная сериализация для сохранения"""
         return {
+            "id": getattr(self, "id", None),
             "number": self.number,
             "date": self.date.isoformat(),
             "nomenclature": {
-                "name": self.nomenclature.name,
-                "code": getattr(self.nomenclature, "code", None)
+                "id": getattr(self.nomenclature, "id", None),
+                "name": self.nomenclature.name
             },
             "warehouse": {
+                "id": getattr(self.warehouse, "id", None),
                 "name": self.warehouse.name,
                 "code": getattr(self.warehouse, "code", None)
             },
             "quantity": self.quantity,
             "unit": {
+                "id": getattr(self.unit, "id", None),
                 "name": self.unit.name,
-                "factor": self.unit.factor,
-                "base": self.unit.base.name if self.unit.base else None
+                "factor": self.unit.factor
             }
         }
+
