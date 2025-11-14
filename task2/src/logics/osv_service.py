@@ -1,4 +1,7 @@
 from datetime import date
+from src.core.filter_utils import filter_objects
+from src.models.filter_dto import FilterDTO
+from typing import List
 
 
 class OSVCalculator:
@@ -71,3 +74,23 @@ class OSVCalculator:
                 "Конечный остаток": closing
             })
         return result
+
+
+"""Прототип сервиса для генерации ОСВ"""
+class OSVPrototype:
+    def __init__(self, storage):
+        self.storage = storage
+
+    def generate_osv(self, model_type: str, filters: List[FilterDTO] = None):
+        """Генерирует упрощенную ОСВ для указанного типа модели"""
+        objects = getattr(self.storage, model_type + "s", [])
+        if filters:
+            objects = filter_objects(objects, filters)
+        osv_list = []
+        for obj in objects:
+            osv_list.append({
+                "name": getattr(obj, "name", ""),
+                "code": getattr(obj, "code", ""),
+                "balance": getattr(obj, "balance", 0)
+            })
+        return osv_list
