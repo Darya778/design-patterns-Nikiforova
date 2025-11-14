@@ -1,0 +1,10 @@
+[
+  {
+    "_abstract_model__unique_code": "512d87209f634f1f8a1d05dd2bcd24c8",
+    "_abstract_reference__name": "Основной склад"
+  },
+  {
+    "_abstract_model__unique_code": "f9e0cec1cdf14cf6876717051ea77fff",
+    "_abstract_reference__name": "Резервный склад"
+  }
+]
