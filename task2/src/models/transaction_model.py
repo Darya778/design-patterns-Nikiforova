@@ -17,6 +17,7 @@ class transaction_model:
     def __init__(self, number: str, nomenclature: nomenclature_model,
                  warehouse: warehouse_model, quantity: float,
                  unit: unit_model, date_: date):
+
         validator.validate(number, str)
         validator.validate(quantity, (int, float))
 
@@ -27,6 +28,7 @@ class transaction_model:
         if not isinstance(unit, unit_model):
             raise argument_exception("unit должен быть экземпляром unit_model")
 
+        self.id = None
         self.number = number
         self.nomenclature = nomenclature
         self.warehouse = warehouse
@@ -40,25 +42,16 @@ class transaction_model:
         return self.number
 
     def to_dict(self):
-        """Полная сериализация для сохранения"""
+        """
+        Минимальная сериализация
+        Все поля обрабатывает convert_factory → convertors
+        """
         return {
-            "id": getattr(self, "id", None),
+            "id": self.id,
             "number": self.number,
-            "date": self.date.isoformat(),
-            "nomenclature": {
-                "id": getattr(self.nomenclature, "id", None),
-                "name": self.nomenclature.name
-            },
-            "warehouse": {
-                "id": getattr(self.warehouse, "id", None),
-                "name": self.warehouse.name,
-                "code": getattr(self.warehouse, "code", None)
-            },
-            "quantity": self.quantity,
-            "unit": {
-                "id": getattr(self.unit, "id", None),
-                "name": self.unit.name,
-                "factor": self.unit.factor
-            }
+            "date": self.date,
+            "nomenclature": self.nomenclature,
+            "warehouse": self.warehouse,
+            "unit": self.unit,
+            "quantity": self.quantity
         }
-
