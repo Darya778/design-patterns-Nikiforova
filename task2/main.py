@@ -9,7 +9,7 @@ from src.start_service import start_service
 from src.settings_manager import settings_manager
 from src.logics.factory_entities import factory_entities
 from src.logics.convert_factory import convert_factory
-from src.logics.osv_service import compute_osv
+from src.logics.osv_service import OSVCalculator
 
 app = connexion.FlaskApp(__name__)
 
@@ -145,8 +145,15 @@ def api_report_osv():
 
 
 def compute_osv_result_for_response(repo, start_date, end_date, warehouse_id):
-    rows = compute_osv(repo, start_date, end_date, warehouse_id)
-    rows = sorted(rows, key=lambda r: (r.get("nomenclature_name") or "", r.get("nomenclature_id") or ""))
+    osv_calc  = OSVCalculator(repo)
+    rows = osv_calc.compute_osv(start_date, end_date, warehouse_id)
+    rows = sorted(
+        rows,
+        key=lambda r: (
+            r.get("Номенклатура", {}).get("name", ""),
+            r.get("Номенклатура", {}).get("id", "")
+        )
+    )
     return rows
 
 
