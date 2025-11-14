@@ -4,6 +4,7 @@
 
 import os
 import json
+from datetime import date
 
 from src.models.nomenclature_model import nomenclature_model
 from src.models.unit_model import unit_model
@@ -12,10 +13,12 @@ from src.models.receipt_model import receipt_model
 from src.models.warehouse_model import warehouse_model
 from src.models.transaction_model import transaction_model
 
+
 class storage_repository:
     """
     Репозиторий для хранения всех моделей приложения
     """
+
     def __init__(self):
         self.nomenclatures = []
         self.units = []
@@ -52,23 +55,30 @@ class storage_repository:
     def load_all(self):
         if not os.path.exists(self.file_path):
             return False
+
         with open(self.file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        self.nomenclatures.clear()
-        self.units.clear()
-        self.groups.clear()
-        self.receipts.clear()
-        self.warehouses.clear()
-        self.transactions.clear()
+        for arr in self.data.values():
+            arr.clear()
 
         id_to_unit = {}
+
         for u in data.get("unit", []):
             base = None
             if u.get("base"):
-                base = unit_model(u["base"]["name"], u["base"]["factor"], None)
+                base = unit_model(
+                    name=u["base"]["name"],
+                    factor=u["base"]["factor"],
+                    base=None
+                )
                 base.id = u["base"].get("id")
-            unit = unit_model(u["name"], u["factor"], base)
+
+            unit = unit_model(
+                name=u["name"],
+                factor=u["factor"],
+                base=base
+            )
             unit.id = u.get("id")
             id_to_unit[unit.id] = unit
             self.add_unit(unit)
@@ -92,21 +102,33 @@ class storage_repository:
         for n in data.get("nomenclature", []):
             grp = id_to_group.get(n["group"]["id"]) if n.get("group") else None
             unt = id_to_unit.get(n["unit"]["id"]) if n.get("unit") else None
-            nom = nomenclature_model(n["name"], n.get("full_name", ""), grp, unt)
+
+            nom = nomenclature_model(
+                name=n["name"],
+                full_name=n.get("full_name", ""),
+                group=grp,
+                unit=unt
+            )
             nom.id = n.get("id")
             id_to_nom[nom.id] = nom
             self.add_nomenclature(nom)
 
         for t in data.get("transaction", []):
-            n = id_to_nom.get(t.get("nomenclature", {}).get("id")) if t.get("nomenclature") else None
-            w = id_to_wh.get(t.get("warehouse", {}).get("id")) if t.get("warehouse") else None
-            u = id_to_unit.get(t.get("unit", {}).get("id")) if t.get("unit") else None
-            date_str = t.get("date")
-            from datetime import date
-            d = date.fromisoformat(date_str) if date_str else None
+            nom = id_to_nom.get(t.get("nomenclature", {}).get("id")) if t.get("nomenclature") else None
+            wh = id_to_wh.get(t.get("warehouse", {}).get("id")) if t.get("warehouse") else None
+            unt = id_to_unit.get(t.get("unit", {}).get("id")) if t.get("unit") else None
+
+            d = None
+            if t.get("date"):
+                d = date.fromisoformat(t["date"])
+
             tr = transaction_model(
-                t.get("code", f"NO_CODE_{t.get('id', '')}"),
-                n, w, t.get("quantity", 0), u, d
+                number=t.get("number", f"NO_CODE_{t.get('id', '')}"),
+                nomenclature=nom,
+                warehouse=wh,
+                quantity=t.get("quantity", 0),
+                unit=unt,
+                date_=d
             )
             tr.id = t.get("id")
             self.add_transaction(tr)
