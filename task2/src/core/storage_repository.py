@@ -52,6 +52,13 @@ class storage_repository:
             json.dump(full, f, ensure_ascii=False, indent=2)
         print(f"[OK] Repository saved to {self.file_path}")
 
+    @staticmethod
+    def restore_ref(mapping, container, key):
+        ref = container.get(key)
+        if isinstance(ref, dict):
+            return mapping.get(ref.get("id"))
+        return None
+
     def load_all(self):
         if not os.path.exists(self.file_path):
             return False
@@ -114,9 +121,10 @@ class storage_repository:
             self.add_nomenclature(nom)
 
         for t in data.get("transaction", []):
-            nom = id_to_nom.get(t.get("nomenclature", {}).get("id")) if t.get("nomenclature") else None
-            wh = id_to_wh.get(t.get("warehouse", {}).get("id")) if t.get("warehouse") else None
-            unt = id_to_unit.get(t.get("unit", {}).get("id")) if t.get("unit") else None
+
+            nom = self.restore_ref(id_to_nom, t, "nomenclature")
+            wh = self.restore_ref(id_to_wh, t, "warehouse")
+            unt = self.restore_ref(id_to_unit, t, "unit")
 
             d = None
             if t.get("date"):
