@@ -204,29 +204,38 @@ def api_filter(entity_type):
 
     return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json")
 
+
+from src.core.filter_parser import filter_parser
+
 @app.route("/api/report/osv/filter", methods=["POST"])
 def api_osv_filter():
     """Фильтрует оборотно-сальдовую ведомость по заданным критериям"""
-    body = request.json
+    body = request.json or {}
 
-    if not body or "model_type" not in body or "filters" not in body:
-        return jsonify({"error": "Request must include model_type and filters[]"}), 400
+    if "filters" not in body:
+        return jsonify({"error": "filters[] missing"}), 400
 
-    model_type = body["model_type"]
-    raw_filters = body["filters"]
+    try:
+        filters = filter_parser.parse(body["filters"])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-    repository = storage_repository()
-    service = start_service(repository)
+    repo = storage_repository()
+    service = start_service(repo)
     service.create()
 
-    filters = [FilterDTO(filter_item["field_name"], filter_item["value"], filter_item["filter_type"]) for filter_item in raw_filters]
+    osv_calc = OSVCalculator(repo)
+    osv_rows = osv_calc.compute_osv(
+        date(1900, 1, 1),
+        date(2100, 1, 1),
+        warehouse_id=None,
+        filters=filters
+    )
 
-    osv_calculator = OSVCalculator(repository)
-    osv_rows = osv_calculator.compute_osv(date(1900, 1, 1), date(2100, 1, 1), None)
-
-    filtered_rows = filter_objects(osv_rows, filters)
-
-    return Response(json.dumps(filtered_rows, ensure_ascii=False, indent=2), mimetype="application/json")
+    return Response(
+        json.dumps(osv_rows, ensure_ascii=False, indent=2),
+        mimetype="application/json"
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
