@@ -10,6 +10,8 @@ from src.settings_manager import settings_manager
 from src.logics.factory_entities import factory_entities
 from src.logics.convert_factory import convert_factory
 from src.logics.osv_service import OSVCalculator
+from src.core.filter_utils import filter_objects
+from src.models.filter_dto import FilterDTO
 
 app = connexion.FlaskApp(__name__)
 
@@ -180,6 +182,60 @@ def save_data():
 
     return jsonify({"saved_file": path})
 
+
+@app.route("/api/filter/<entity_type>", methods=["POST"])
+def api_filter(entity_type):
+    """Фильтрует объекты указанного типа по заданным критериям"""
+    repository = storage_repository()
+    service = start_service(repository)
+    service.create()
+
+    if entity_type not in repository.data:
+        return jsonify({"error": f"Unknown entity type '{entity_type}'"}), 404
+
+    raw_filters = request.json or []
+    filters = [FilterDTO(filter_item["field_name"], filter_item["value"], filter_item["filter_type"]) for filter_item in raw_filters]
+
+    objects = repository.data[entity_type]
+    filtered_objects = filter_objects(objects, filters)
+
+    converter = convert_factory()
+    result = converter.convert_collection(filtered_objects)
+
+    return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json")
+
+
+from src.core.filter_parser import filter_parser
+
+@app.route("/api/report/osv/filter", methods=["POST"])
+def api_osv_filter():
+    """Фильтрует оборотно-сальдовую ведомость по заданным критериям"""
+    body = request.json or {}
+
+    if "filters" not in body:
+        return jsonify({"error": "filters[] missing"}), 400
+
+    try:
+        filters = filter_parser.parse(body["filters"])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    repo = storage_repository()
+    service = start_service(repo)
+    service.create()
+
+    osv_calc = OSVCalculator(repo)
+    osv_rows = osv_calc.compute_osv(
+        date(1900, 1, 1),
+        date(2100, 1, 1),
+        warehouse_id=None,
+        filters=filters
+    )
+
+    return Response(
+        json.dumps(osv_rows, ensure_ascii=False, indent=2),
+        mimetype="application/json"
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

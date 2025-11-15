@@ -1,4 +1,8 @@
 from datetime import date
+from src.core.filter_utils import filter_objects
+from src.models.filter_dto import FilterDTO
+from src.core.filter_engine import filter_engine
+from typing import List
 
 
 class OSVCalculator:
@@ -27,19 +31,34 @@ class OSVCalculator:
                 or requested == getattr(tx_warehouse, "code", "").lower()
         )
 
-    def compute_osv(self, start_date, end_date, warehouse: str = None):
+    def compute_osv(self, start_date, end_date, warehouse_id=None, filters=None):
+        rows = self._compute_internal(start_date, end_date, warehouse_id)
+
+        if filters:
+            rows = filter_engine.filter(rows, filters)
+
+        return rows
+
+    def _compute_internal(self, start_date, end_date, warehouse):
         """
-        Формирует оборотно-сальдовую ведомость
+        Базовая логика формирования ОСВ
         """
         txs = self.repo.transactions
         noms = self.repo.nomenclatures
 
         result = []
+
         for n in noms:
-            filt = [t for t in txs if t.nomenclature == n and self.warehouse_match(t.warehouse, warehouse)]
+            filt = [
+                t for t in txs
+                if t.nomenclature == n and self.warehouse_match(t.warehouse, warehouse)
+            ]
 
             if not filt:
-                wh_obj = next((w for w in self.repo.warehouses if self.warehouse_match(w, warehouse)), None)
+                wh_obj = next(
+                    (w for w in self.repo.warehouses if self.warehouse_match(w, warehouse)),
+                    None
+                )
                 result.append({
                     "Склад": wh_obj.to_dict() if wh_obj else {"name": warehouse or "Все склады"},
                     "Номенклатура": n.to_dict(),
@@ -53,9 +72,13 @@ class OSVCalculator:
 
             opening = sum(t.unit.to_base(t.quantity) for t in filt if t.date < start_date)
             incoming = sum(
-                t.unit.to_base(t.quantity) for t in filt if start_date <= t.date <= end_date and t.quantity > 0)
+                t.unit.to_base(t.quantity)
+                for t in filt if start_date <= t.date <= end_date and t.quantity > 0
+            )
             outgoing = -sum(
-                t.unit.to_base(t.quantity) for t in filt if start_date <= t.date <= end_date and t.quantity < 0)
+                t.unit.to_base(t.quantity)
+                for t in filt if start_date <= t.date <= end_date and t.quantity < 0
+            )
             closing = opening + incoming - outgoing
 
             first_unit = filt[0].unit
@@ -70,4 +93,24 @@ class OSVCalculator:
                 "Расход": outgoing,
                 "Конечный остаток": closing
             })
+
         return result
+
+"""Прототип сервиса для генерации ОСВ"""
+class OSVPrototype:
+    def __init__(self, storage):
+        self.storage = storage
+
+    def generate_osv(self, model_type: str, filters: List[FilterDTO] = None):
+        """Генерирует упрощенную ОСВ для указанного типа модели"""
+        objects = getattr(self.storage, model_type + "s", [])
+        if filters:
+            objects = filter_objects(objects, filters)
+        osv_list = []
+        for obj in objects:
+            osv_list.append({
+                "name": getattr(obj, "name", ""),
+                "code": getattr(obj, "code", ""),
+                "balance": getattr(obj, "balance", 0)
+            })
+        return osv_list
