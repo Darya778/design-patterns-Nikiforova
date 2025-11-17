@@ -1,4 +1,3 @@
-# tst/test_call.py
 import requests
 import json
 import os
@@ -29,7 +28,9 @@ def test_filter_osv():
     response = requests.post(
         f"{BASE}/api/report/osv/filter",
         json={
-            "model_type": "nomenclature",
+            "start": "1900-01-01",
+            "end":   "2100-01-01",
+            "warehouse": None,
             "filters": [
                 {
                     "field_name": "Номенклатура.name",
