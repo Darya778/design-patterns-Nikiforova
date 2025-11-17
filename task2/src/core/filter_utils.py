@@ -1,68 +1,84 @@
-from src.models.filter_dto import FilterDTO
+import unicodedata
 
-def get_nested_value(obj, field_path):
-    """
-    Извлекает значение из вложенных структур
-    - из объектов через getattr
-    - из словарей через dict[key]
-    - из вложенных структур
-    """
-    parts = field_path.split(".")
 
-    current = obj
+class FilterUtils:
 
-    for part in parts:
-        if current is None:
-            return None
+    @staticmethod
+    def normalize(s: str) -> str:
+        if not isinstance(s, str):
+            return s
+        return unicodedata.normalize("NFKC", s).strip().lower()
 
-        if isinstance(current, dict):
-            current = current.get(part)
-            continue
+    @staticmethod
+    def get_nested_value(obj, field_path):
+        """
+        Извлекает значение из вложенных структур
+        - из объектов через getattr
+        - из словарей через dict[key]
+        - из вложенных структур
+        """
+        parts = field_path.split(".")
+        current = obj
 
-        if hasattr(current, part):
-            current = getattr(current, part)
-            continue
+        for part in parts:
+            part_norm = FilterUtils.normalize(part)
 
-        if isinstance(current, dict):
-            for key in current.keys():
-                if key.lower() == part.lower():
-                    current = current[key]
-                    break
-            else:
+            if current is None:
                 return None
-            continue
 
-        return None
-
-    return current
-
-
-def filter_objects(objects, filters):
-    """
-    Фильтрует список объектов по заданным критериям
-    Поддерживает вложенные поля и разные типы сравнения
-    """
-    result = objects
-
-    for f in filters:
-        filtered = []
-
-        for obj in result:
-            value = get_nested_value(obj, f.field_name)
-            if value is None:
+            # ---- DICT ----
+            if isinstance(current, dict):
+                found = False
+                for key in current.keys():
+                    if FilterUtils.normalize(key) == part_norm:
+                        current = current[key]
+                        found = True
+                        break
+                if not found:
+                    return None
                 continue
 
-            value_str = str(value).lower()
-            filter_str = str(f.value).lower()
+            # ---- OBJECT ----
+            attrs = {
+                FilterUtils.normalize(a): a
+                for a in dir(current)
+                if not a.startswith("_")
+            }
 
-            if f.filter_type == "EQUALS":
-                if value_str == filter_str:
-                    filtered.append(obj)
+            if part_norm in attrs:
+                current = getattr(current, attrs[part_norm])
+                continue
 
-            elif f.filter_type == "LIKE":
-                if filter_str in value_str:
-                    filtered.append(obj)
+            return None
 
-        result = filtered
+        return current
 
-    return result
+    @staticmethod
+    def apply(objects, filters):
+        result = objects
+
+        for f in filters:
+            filtered = []
+
+            for obj in result:
+                value = FilterUtils.get_nested_value(obj, f.field_name)
+                if value is None:
+                    continue
+
+                val_norm = FilterUtils.normalize(str(value))
+                flt_norm = FilterUtils.normalize(str(f.value))
+
+                ftype = f.filter_type.name  # enum → string
+
+                match ftype:
+                    case "EQUALS":
+                        if val_norm == flt_norm:
+                            filtered.append(obj)
+
+                    case "LIKE":
+                        if flt_norm in val_norm:
+                            filtered.append(obj)
+
+            result = filtered
+
+        return result
