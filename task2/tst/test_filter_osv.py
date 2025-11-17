@@ -4,7 +4,7 @@ from src.models.unit_model import unit_model
 from src.models.group_model import group_model
 from src.models.filter_dto import FilterDTO
 from src.core.filters_enum import FilterType
-from src.core.filter_utils import filter_objects
+from src.core.filter_utils import FilterUtils
 from src.logics.osv_service import OSVPrototype
 
 
@@ -42,21 +42,21 @@ class TestFilterObjects(unittest.TestCase):
     def test_equals_filter(self):
         """Тест фильтрации по точному совпадению"""
         filters = [FilterDTO(field_name="name", value="Мука", filter_type=FilterType.EQUALS)]
-        result = filter_objects(self.storage.nomenclatures, filters)
+        result = FilterUtils.apply(self.storage.nomenclatures, filters)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].name, "Мука")
 
     def test_like_filter(self):
         """Тест фильтрации по подстроке"""
         filters = [FilterDTO(field_name="name", value="Мо", filter_type=FilterType.LIKE)]
-        result = filter_objects(self.storage.nomenclatures, filters)
+        result = FilterUtils.apply(self.storage.nomenclatures, filters)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].name, "Молоко")
 
     def test_nested_filter(self):
         """Тест фильтрации по вложенным полям"""
         filters = [FilterDTO(field_name="unit.name", value="грамм", filter_type=FilterType.EQUALS)]
-        result = filter_objects(self.storage.nomenclatures, filters)
+        result = FilterUtils.apply(self.storage.nomenclatures, filters)
         self.assertEqual(len(result), 2)
         names = [n.name for n in result]
         self.assertIn("Мука", names)
