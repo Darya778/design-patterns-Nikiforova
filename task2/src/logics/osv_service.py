@@ -1,5 +1,5 @@
 from datetime import date
-from src.core.filter_utils import filter_objects
+from src.core.filter_utils import FilterUtils
 from src.models.filter_dto import FilterDTO
 from src.core.filter_engine import filter_engine
 from typing import List
@@ -105,7 +105,7 @@ class OSVPrototype:
         """Генерирует упрощенную ОСВ для указанного типа модели"""
         objects = getattr(self.storage, model_type + "s", [])
         if filters:
-            objects = filter_objects(objects, filters)
+            objects = FilterUtils.apply(objects, filters)
         osv_list = []
         for obj in objects:
             osv_list.append({
