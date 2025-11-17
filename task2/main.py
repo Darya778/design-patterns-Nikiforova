@@ -10,8 +10,9 @@ from src.settings_manager import settings_manager
 from src.logics.factory_entities import factory_entities
 from src.logics.convert_factory import convert_factory
 from src.logics.osv_service import OSVCalculator
-from src.core.filter_utils import filter_objects
+from src.core.filter_utils import FilterUtils
 from src.models.filter_dto import FilterDTO
+from src.core.filter_parser import filter_parser
 
 app = connexion.FlaskApp(__name__)
 
@@ -194,29 +195,59 @@ def api_filter(entity_type):
         return jsonify({"error": f"Unknown entity type '{entity_type}'"}), 404
 
     raw_filters = request.json or []
-    filters = [FilterDTO(filter_item["field_name"], filter_item["value"], filter_item["filter_type"]) for filter_item in raw_filters]
+
+    if not isinstance(raw_filters, list):
+        return jsonify({"error": "filters must be an array"}), 400
+
+    filters = []
+    for item in raw_filters:
+        try:
+            filters.append(FilterDTO.from_dict(item))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
 
     objects = repository.data[entity_type]
-    filtered_objects = filter_objects(objects, filters)
+    filtered_objects = FilterUtils.apply(objects, filters)
 
     converter = convert_factory()
     result = converter.convert_collection(filtered_objects)
 
-    return Response(json.dumps(result, ensure_ascii=False, indent=2), mimetype="application/json")
+    return Response(json.dumps(result, ensure_ascii=False, indent=2),
+                    mimetype="application/json")
 
-
-from src.core.filter_parser import filter_parser
 
 @app.route("/api/report/osv/filter", methods=["POST"])
 def api_osv_filter():
     """Фильтрует оборотно-сальдовую ведомость по заданным критериям"""
     body = request.json or {}
 
-    if "filters" not in body:
-        return jsonify({"error": "filters[] missing"}), 400
+    DEFAULT_START = date(1900, 1, 1)
+    DEFAULT_END   = date(2100, 1, 1)
 
+    start_s = body.get("start")
+    end_s = body.get("end")
+
+    if start_s:
+        try:
+            start_date = datetime.fromisoformat(start_s).date()
+        except Exception:
+            return jsonify({"error": "Bad start date format, expected YYYY-MM-DD"}), 400
+    else:
+        start_date = DEFAULT_START
+
+    if end_s:
+        try:
+            end_date = datetime.fromisoformat(end_s).date()
+        except Exception:
+            return jsonify({"error": "Bad end date format, expected YYYY-MM-DD"}), 400
+    else:
+        end_date = DEFAULT_END
+
+    warehouse = body.get("warehouse")
+
+    raw_filters = body.get("filters", [])
     try:
-        filters = filter_parser.parse(body["filters"])
+        filters = filter_parser.parse(raw_filters)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -225,10 +256,11 @@ def api_osv_filter():
     service.create()
 
     osv_calc = OSVCalculator(repo)
+
     osv_rows = osv_calc.compute_osv(
-        date(1900, 1, 1),
-        date(2100, 1, 1),
-        warehouse_id=None,
+        start_date=start_date,
+        end_date=end_date,
+        warehouse_id=warehouse,
         filters=filters
     )
 
@@ -236,6 +268,7 @@ def api_osv_filter():
         json.dumps(osv_rows, ensure_ascii=False, indent=2),
         mimetype="application/json"
     )
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
