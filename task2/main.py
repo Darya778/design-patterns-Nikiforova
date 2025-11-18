@@ -218,38 +218,18 @@ def api_filter(entity_type):
 
 @app.route("/api/report/osv/filter", methods=["POST"])
 def api_osv_filter():
-    """Фильтрует оборотно-сальдовую ведомость по заданным критериям"""
     body = request.json or {}
 
-    DEFAULT_START = date(1900, 1, 1)
-    DEFAULT_END   = date(2100, 1, 1)
+    start_date = body.get("start", "1900-01-01")
+    end_date   = body.get("end",   "2100-01-01")
 
-    start_s = body.get("start")
-    end_s = body.get("end")
-
-    if start_s:
-        try:
-            start_date = datetime.fromisoformat(start_s).date()
-        except Exception:
-            return jsonify({"error": "Bad start date format, expected YYYY-MM-DD"}), 400
-    else:
-        start_date = DEFAULT_START
-
-    if end_s:
-        try:
-            end_date = datetime.fromisoformat(end_s).date()
-        except Exception:
-            return jsonify({"error": "Bad end date format, expected YYYY-MM-DD"}), 400
-    else:
-        end_date = DEFAULT_END
+    start_date = datetime.fromisoformat(start_date).date()
+    end_date   = datetime.fromisoformat(end_date).date()
 
     warehouse = body.get("warehouse")
 
     raw_filters = body.get("filters", [])
-    try:
-        filters = filter_parser.parse(raw_filters)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    filters = filter_parser.parse(raw_filters)
 
     repo = storage_repository()
     service = start_service(repo)
@@ -260,7 +240,7 @@ def api_osv_filter():
     osv_rows = osv_calc.compute_osv(
         start_date=start_date,
         end_date=end_date,
-        warehouse_id=warehouse,
+        warehouse=warehouse,
         filters=filters
     )
 
