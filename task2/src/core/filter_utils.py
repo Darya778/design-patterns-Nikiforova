@@ -2,6 +2,16 @@ import unicodedata
 
 
 class FilterUtils:
+    FIELD_ALIASES = {
+        "номенклатура": "",
+        "склад": "",
+        "единица": "",
+        "наименование": "name",
+        "код": "code",
+        "приход": "Приход",
+        "расход": "Расход",
+        "конечныйостаток": "Конечный остаток",
+    }
 
     @staticmethod
     def normalize(s: str) -> str:
@@ -12,10 +22,7 @@ class FilterUtils:
     @staticmethod
     def get_nested_value(obj, field_path):
         """
-        Извлекает значение из вложенных структур
-        - из объектов через getattr
-        - из словарей через dict[key]
-        - из вложенных структур
+        Извлекает значение из вложенных объектов/словрей
         """
         parts = field_path.split(".")
         current = obj
@@ -23,10 +30,23 @@ class FilterUtils:
         for part in parts:
             part_norm = FilterUtils.normalize(part)
 
+            if part_norm in FilterUtils.FIELD_ALIASES:
+                alias = FilterUtils.FIELD_ALIASES[part_norm]
+
+                if alias == "":
+                    for key in current.keys():
+                        if FilterUtils.normalize(key) == part_norm:
+                            current = current[key]
+                            break
+                    else:
+                        return None
+                    continue
+
+                part_norm = FilterUtils.normalize(alias)
+
             if current is None:
                 return None
 
-            # ---- DICT ----
             if isinstance(current, dict):
                 found = False
                 for key in current.keys():
@@ -38,7 +58,6 @@ class FilterUtils:
                     return None
                 continue
 
-            # ---- OBJECT ----
             attrs = {
                 FilterUtils.normalize(a): a
                 for a in dir(current)
@@ -60,6 +79,10 @@ class FilterUtils:
         for f in filters:
             filtered = []
 
+            ft = f.filter_type
+            ftype = ft if isinstance(ft, str) else ft.name
+            ftype = ftype.upper()
+
             for obj in result:
                 value = FilterUtils.get_nested_value(obj, f.field_name)
                 if value is None:
@@ -68,17 +91,13 @@ class FilterUtils:
                 val_norm = FilterUtils.normalize(str(value))
                 flt_norm = FilterUtils.normalize(str(f.value))
 
-                ftype = f.filter_type.name  # enum → string
+                if ftype == "EQUALS" and val_norm == flt_norm:
+                    filtered.append(obj)
 
-                match ftype:
-                    case "EQUALS":
-                        if val_norm == flt_norm:
-                            filtered.append(obj)
-
-                    case "LIKE":
-                        if flt_norm in val_norm:
-                            filtered.append(obj)
+                elif ftype == "LIKE" and flt_norm in val_norm:
+                    filtered.append(obj)
 
             result = filtered
 
         return result
+
