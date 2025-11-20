@@ -1,0 +1,20 @@
+[
+  {
+    "unique_code": "4cec5e7aaa9a4f4eb313fc3f49e0cc06",
+    "name": "Молоко",
+    "group": {
+      "unique_code": "e7985a7ffbfb40d394d4bbeafb94dbd4",
+      "name": "Молочные продукты",
+      "id": "G-830678a8"
+    },
+    "unit": {
+      "unique_code": "d7b02290ccc34350a7f8bc9afa556a79",
+      "name": "литр",
+      "factor": 1,
+      "base": null,
+      "id": "U-1f10e222"
+    },
+    "full_name": "Молоко пастеризованное 3.2%",
+    "id": "N-4e1dcf3a"
+  }
+]
