@@ -1,0 +1,15 @@
+{
+  "block_date": "2024-01-01",
+  "data": [
+    {
+      "warehouse_id": 1,
+      "item_id": 1,
+      "unit_id": 1,
+      "opening": 0.0,
+      "incoming": 330856.0901483232,
+      "outgoing": 81979.92563271664,
+      "closing": 248876.1645156066,
+      "snapshot_date": "2024-01-01"
+    }
+  ]
+}
