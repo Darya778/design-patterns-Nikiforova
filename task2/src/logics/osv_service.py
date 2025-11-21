@@ -3,13 +3,15 @@ from src.core.filter_utils import FilterUtils
 from src.models.filter_dto import FilterDTO
 from src.core.filter_engine import filter_engine
 from typing import List
-
+from datetime import datetime, date, timedelta
+from src.settings_manager import settings_manager
 
 class OSVCalculator:
 
     def __init__(self, repo):
         self.repo = repo
         self.prototype = OSVPrototype(repo)
+        self.settings_manager = settings_manager()
 
     def compute_osv(self, start_date, end_date, warehouse=None, filters=None):
         proto = self.prototype.clone()
@@ -87,6 +89,86 @@ class OSVCalculator:
             })
 
         return result
+
+    def compute_turnovers_until_block(self, block_period: date):
+        start_date = date(1900, 1, 1)
+        end_date = block_period
+
+        txs = [t for t in self.repo.transactions if t.date and t.date <= end_date]
+
+        snapshots = {}
+        for t in txs:
+            key = (
+                t.warehouse.id if t.warehouse else None,
+                t.nomenclature.id,
+                t.unit.id if t.unit else None
+            )
+            entry = snapshots.setdefault(key, {"opening": 0.0, "incoming": 0.0, "outgoing": 0.0})
+            qty = t.unit.to_base(t.quantity) if getattr(t, "unit", None) and hasattr(t.unit, "to_base") else t.quantity
+            if t.date < start_date:
+                entry["opening"] += qty
+            else:
+                if qty >= 0:
+                    entry["incoming"] += qty
+                else:
+                    entry["outgoing"] += -qty
+
+        snapshot_list = []
+        for (wh_id, item_id, unit_id), vals in snapshots.items():
+            snapshot_list.append({
+                "warehouse_id": wh_id,
+                "item_id": item_id,
+                "unit_id": unit_id,
+                "opening": vals["opening"],
+                "incoming": vals["incoming"],
+                "outgoing": vals["outgoing"],
+                "closing": vals["opening"] + vals["incoming"] - vals["outgoing"],
+                "snapshot_date": end_date.isoformat()
+            })
+
+        self.repo.save_turnovers_snapshot(end_date, snapshot_list)
+
+        return snapshot_list
+
+    def compute_balances_at(self, target_date: date):
+        block_date = self.settings_manager.get_block_period()
+
+        if not block_date:
+            return self.prototype.generate(date(1900, 1, 1), target_date)
+
+        snapshot = self.repo.load_turnovers_snapshot(block_date)
+        if snapshot is None:
+            snapshot = self.compute_turnovers_until_block(block_date)
+
+        if target_date <= block_date:
+            return [
+                {
+                    "warehouse_id": s["warehouse_id"],
+                    "item_id": s["item_id"],
+                    "unit_id": s["unit_id"],
+                    "balance": s["closing"]
+                }
+                for s in snapshot
+            ]
+
+        balances = {
+            (s["warehouse_id"], s["item_id"], s["unit_id"]): s["closing"]
+            for s in snapshot
+        }
+
+        after_start = block_date + timedelta(days=1)
+        txs = [t for t in self.repo.transactions if t.date and after_start <= t.date <= target_date]
+
+        for t in txs:
+            key = (t.warehouse.id if t.warehouse else None, t.nomenclature.id, t.unit.id if t.unit else None)
+            qty = t.unit.to_base(t.quantity) if getattr(t, "unit", None) and hasattr(t.unit, "to_base") else t.quantity
+            balances[key] = balances.get(key, 0.0) + qty
+
+        return [
+            {"warehouse_id": wh, "item_id": it, "unit_id": un, "balance": bal}
+            for (wh, it, un), bal in balances.items()
+        ]
+
 
 """Прототип сервиса для генерации ОСВ"""
 class OSVPrototype:
