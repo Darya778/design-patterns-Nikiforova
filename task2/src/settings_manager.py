@@ -8,6 +8,8 @@ from src.models.company_model import company_model
 from src.models.settings_model import settings_model
 import json
 from src.models.settings_model import settings_model, ResponseFormat
+from datetime import datetime, date
+
 
 """
 Менеджер настроек (Singleton)
@@ -25,10 +27,12 @@ class settings_manager:
         return cls._instance
 
     def __init__(self, file_name: str = "", config_path: str = "settings.json"):
+        # всегда устанавливаем config_path
+        self.config_path = config_path
+
         if file_name:
             self.file_name = file_name
-            self.config_path = config_path
-            self.settings: settings_model | None = None
+            self.__settings = None
 
     """ Возвращает текущие настройки """
     @property
@@ -111,8 +115,31 @@ class settings_manager:
         format_str = data.get("response_format", "JSON")
         response_format = ResponseFormat[format_str.upper()]
 
-        self.settings = settings_model(
+        self.__settings = settings_model(
             data_source=data.get("data_source", ""),
             response_format=response_format
         )
-        return self.settings
+        return self.__settings
+
+    def set_block_period(self, block_date):
+        """Сохранить дату блокировки в settings.json"""
+        data = {}
+        if os.path.exists(self.config_path):
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+        data["block_period"] = block_date.isoformat()
+
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def get_block_period(self):
+        """Получить дату блокировки"""
+        if not os.path.exists(self.config_path):
+            return None
+
+        with open(self.config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        bp = data.get("block_period")
+        return date.fromisoformat(bp) if bp else None
