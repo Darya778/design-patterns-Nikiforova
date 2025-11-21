@@ -38,6 +38,8 @@ class storage_repository:
             "transaction": self.transactions
         }
 
+        self.snapshot_file = os.path.join("task2", "data_out", "turnover_snapshot.json")
+
     def add_nomenclature(self, item): self.nomenclatures.append(item)
     def add_unit(self, item): self.units.append(item)
     def add_group(self, item): self.groups.append(item)
@@ -142,3 +144,25 @@ class storage_repository:
             self.add_transaction(tr)
 
         return True
+
+    def save_turnovers_snapshot(self, block_date, data):
+        os.makedirs(os.path.dirname(self.snapshot_file), exist_ok=True)
+        payload = {
+            "block_date": block_date.isoformat(),
+            "data": data
+        }
+        with open(self.snapshot_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    def load_turnovers_snapshot(self, block_date):
+        """Загрузить snapshot, если он соответствует block_period"""
+        if not os.path.exists(self.snapshot_file):
+            return None
+
+        with open(self.snapshot_file, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+
+        if payload.get("block_date") != block_date.isoformat():
+            return None
+
+        return payload.get("data", [])
