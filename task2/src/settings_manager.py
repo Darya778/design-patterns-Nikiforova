@@ -1,13 +1,15 @@
 """
-Загружает и хранит настройки приложения из JSON-файла
+Загружает и хранит настройки приложения
 """
 
 import os
 import json
-from src.models.company_model import company_model
-from src.models.settings_model import settings_model
-import json
+from datetime import date
 from src.models.settings_model import settings_model, ResponseFormat
+from src.models.company_model import company_model
+from dataclasses import dataclass
+from datetime import date
+from enum import Enum
 
 """
 Менеджер настроек (Singleton)
@@ -15,9 +17,9 @@ from src.models.settings_model import settings_model, ResponseFormat
 """
 class settings_manager:
 
-    __file_name: str = ""
-    __settings: settings_model | None = None
     _instance = None
+    __settings: settings_model | None = None
+    __file_name: str = ""
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -25,10 +27,9 @@ class settings_manager:
         return cls._instance
 
     def __init__(self, file_name: str = "", config_path: str = "settings.json"):
+        self.config_path = config_path
         if file_name:
             self.file_name = file_name
-            self.config_path = config_path
-            self.settings: settings_model | None = None
 
     """ Возвращает текущие настройки """
     @property
@@ -43,29 +44,43 @@ class settings_manager:
     """ Возвращает путь к файлу настроек """
     @property
     def file_name(self) -> str:
-        return self.__file_name
+        return getattr(self, "_settings_file", "")
 
     """ Устанавливает путь к файлу настроек """
     @file_name.setter
     def file_name(self, value: str):
-        if not value:
-            return
-        path = os.path.normpath(value.strip())
+        value = value.strip()
+        if os.path.isfile(value):
+            self._settings_file = value
 
-        if os.path.isfile(path):
-            self.__file_name = os.path.abspath(path)
-            return
+    def save_settings(self):
+        """
+        Сохраняем всю модель settings
+        """
+        if not self.__settings:
+            self.__settings = settings_model()
 
-        candidates = [
-            os.path.abspath(path),
-            os.path.abspath(os.path.join(os.getcwd(), "..", os.path.basename(path))),
-            os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")), path),
-        ]
+        data = {
+            "data_source": self.__settings.data_source,
+            "response_format": self.__settings.response_format.name,
+            "block_period": self.__settings.block_period.isoformat()
+            if self.__settings.block_period else None
+        }
 
-        for candidate in candidates:
-            if os.path.isfile(candidate):
-                self.__file_name = candidate
-                return
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def set_block_period(self, block_date: date):
+        if not self.__settings:
+            self.load_settings()
+
+        self.__settings.block_period = block_date
+        self.save_settings()
+
+    def get_block_period(self) -> date | None:
+        if not self.__settings:
+            self.load_settings()
+        return self.__settings.block_period
 
     """ Загружает настройки из файла """
     def load(self) -> bool:
@@ -88,12 +103,6 @@ class settings_manager:
             print("Ошибка загрузки:", ex)
             return False
 
-    """ Настройки по умолчанию """
-    def default(self):
-        comp = company_model()
-        comp.name = "Рога и копыта"
-        self.__settings = settings_model(company=comp)
-
     """ Создает экземпляр company_model из словаря """
     def _dict_to_company(self, data: dict) -> company_model:
         comp = company_model()
@@ -102,17 +111,32 @@ class settings_manager:
                 setattr(comp, field, data[field])
         return comp
 
-    """ Загружает настройки из JSON-файла """
-    def load_settings(self):
+    """ Настройки по умолчанию """
+    def default(self):
+        comp = company_model()
+        comp.name = "Рога и копыта"
+        self.__settings = settings_model(company=comp)
+
+    def load_settings(self) -> settings_model:
+        """
+        Чтение полной модели из JSON
+        """
+        if not os.path.exists(self.config_path):
+            self.__settings = settings_model()
+            self.save_settings()
+            return self.__settings
 
         with open(self.config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        format_str = data.get("response_format", "JSON")
-        response_format = ResponseFormat[format_str.upper()]
+        response_format = ResponseFormat[data.get("response_format", "JSON").upper()]
+        block_str = data.get("block_period", None)
+        block_date = date.fromisoformat(block_str) if block_str else None
 
-        self.settings = settings_model(
+        self.__settings = settings_model(
             data_source=data.get("data_source", ""),
-            response_format=response_format
+            response_format=response_format,
+            block_period=block_date
         )
-        return self.settings
+
+        return self.__settings
