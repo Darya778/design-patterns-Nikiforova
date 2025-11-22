@@ -1,10 +1,11 @@
 """
 Назначение: хранилище данных для моделей проекта
 """
-
 import os
 import json
 from datetime import date
+from dataclasses import asdict
+from typing import List
 
 from src.models.nomenclature_model import nomenclature_model
 from src.models.unit_model import unit_model
@@ -12,6 +13,7 @@ from src.models.group_model import group_model
 from src.models.receipt_model import receipt_model
 from src.models.warehouse_model import warehouse_model
 from src.models.transaction_model import transaction_model
+from src.models.turnover_snapshot_model import turnover_snapshot_model
 
 
 class storage_repository:
@@ -28,6 +30,7 @@ class storage_repository:
         self.transactions = []
 
         self.file_path = os.path.join("task2", "data_out", "repository.json")
+        self.snapshot_file = os.path.join("task2", "data_out", "turnover_snapshot.json")
 
         self.data = {
             "nomenclature": self.nomenclatures,
@@ -38,8 +41,6 @@ class storage_repository:
             "transaction": self.transactions
         }
 
-        self.snapshot_file = os.path.join("task2", "data_out", "turnover_snapshot.json")
-
     def add_nomenclature(self, item): self.nomenclatures.append(item)
     def add_unit(self, item): self.units.append(item)
     def add_group(self, item): self.groups.append(item)
@@ -47,12 +48,20 @@ class storage_repository:
     def add_warehouse(self, item): self.warehouses.append(item)
     def add_transaction(self, item): self.transactions.append(item)
 
+    def get_warehouse_by_id(self, warehouse_id):
+        return next((w for w in self.warehouses if getattr(w, "id", None) == warehouse_id), None)
+
+    def get_nomenclature_by_id(self, item_id):
+        return next((n for n in self.nomenclatures if getattr(n, "id", None) == item_id), None)
+
+    def get_unit_by_id(self, unit_id):
+        return next((u for u in self.units if getattr(u, "id", None) == unit_id), None)
+
     def save_all(self):
         os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
-        full = {name: [i.to_dict() for i in items] for name, items in self.data.items()}
+        full = {name: [getattr(i, "to_dict", lambda: i.__dict__)() for i in items] for name, items in self.data.items()}
         with open(self.file_path, "w", encoding="utf-8") as f:
             json.dump(full, f, ensure_ascii=False, indent=2)
-        print(f"[OK] Repository saved to {self.file_path}")
 
     @staticmethod
     def restore_ref(mapping, container, key):
@@ -123,7 +132,6 @@ class storage_repository:
             self.add_nomenclature(nom)
 
         for t in data.get("transaction", []):
-
             nom = self.restore_ref(id_to_nom, t, "nomenclature")
             wh = self.restore_ref(id_to_wh, t, "warehouse")
             unt = self.restore_ref(id_to_unit, t, "unit")
@@ -145,17 +153,35 @@ class storage_repository:
 
         return True
 
-    def save_turnovers_snapshot(self, block_date, data):
+    def save_turnovers_snapshot(self, block_date: date, data: List[turnover_snapshot_model]):
+        """
+        Сохраняет snapshot в JSON — сериализуем поля вручную,
+        так как date не сериализуется json.dump.
+        """
         os.makedirs(os.path.dirname(self.snapshot_file), exist_ok=True)
+
         payload = {
             "block_date": block_date.isoformat(),
-            "data": data
+            "data": [
+                {
+                    "warehouse_id": s.warehouse_id,
+                    "item_id": s.item_id,
+                    "unit_id": s.unit_id,
+                    "closing": s.closing,
+                    "snapshot_date": s.snapshot_date.isoformat()
+                }
+                for s in data
+            ]
         }
+
         with open(self.snapshot_file, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
-    def load_turnovers_snapshot(self, block_date):
-        """Загрузить snapshot, если он соответствует block_period"""
+    def load_turnovers_snapshot(self, block_date: date) -> List[turnover_snapshot_model] | None:
+        """
+        Загружает snapshot из файла и десериализует в turnover_snapshot_model.
+        Возвращает None если файл отсутствует или дата не совпадает.
+        """
         if not os.path.exists(self.snapshot_file):
             return None
 
@@ -165,4 +191,15 @@ class storage_repository:
         if payload.get("block_date") != block_date.isoformat():
             return None
 
-        return payload.get("data", [])
+        raw = payload.get("data", [])
+        result: List[turnover_snapshot_model] = []
+        for s in raw:
+            snapshot_date = date.fromisoformat(s["snapshot_date"]) if s.get("snapshot_date") else block_date
+            result.append(turnover_snapshot_model(
+                warehouse_id=s.get("warehouse_id"),
+                item_id=s.get("item_id"),
+                unit_id=s.get("unit_id"),
+                closing=s.get("closing", 0.0),
+                snapshot_date=snapshot_date
+            ))
+        return result
