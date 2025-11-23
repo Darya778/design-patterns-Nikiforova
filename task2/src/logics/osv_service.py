@@ -31,41 +31,27 @@ class OSVCalculator:
 
     def compute_turnovers_until_block(self, block_period: date) -> List[turnover_snapshot_model]:
         """
-        Рассчитать агрегированные обороты по каждой номенклатуре/складу
-        за период 1900-01-01 .. block_period и сохранить snapshot в репозитории.
-        Возвращает список turnover_snapshot_model.
+        Рассчитывает агрегированные обороты до block_period с использованием прототипа.
+        Прототип гарантирует ЕДИНУЮ логику расчёта ОСВ по модели osv_row_model.
         """
-        start_date = date(1900, 1, 1)
-        txs = [t for t in self.repo.transactions if t.date and t.date <= block_period]
-
-        snapshots = {}
-        for t in txs:
-            key = (t.warehouse.id if t.warehouse else None, t.nomenclature.id, t.unit.id if t.unit else None)
-            entry = snapshots.setdefault(key, {"opening": 0.0, "incoming": 0.0, "outgoing": 0.0})
-            qty = t.unit.to_base(t.quantity) if getattr(t, "unit", None) and hasattr(t.unit, "to_base") else t.quantity
-
-            if t.date < start_date:
-                entry["opening"] += qty
-            else:
-                if qty >= 0:
-                    entry["incoming"] += qty
-                else:
-                    entry["outgoing"] += -qty
+        proto = self.prototype.clone()
+        rows = proto.generate(date(1900, 1, 1), block_period)
 
         snapshot_list: List[turnover_snapshot_model] = []
-        for (wh_id, item_id, unit_id), vals in snapshots.items():
-            closing = vals["opening"] + vals["incoming"] - vals["outgoing"]
+
+        for r in rows:
             snapshot_list.append(
                 turnover_snapshot_model(
-                    warehouse_id=wh_id,
-                    item_id=item_id,
-                    unit_id=unit_id,
-                    closing=closing,
+                    warehouse_id=r.warehouse.id if r.warehouse else None,
+                    item_id=r.item.id,
+                    unit_id=r.unit.id if r.unit else None,
+                    closing=r.closing,
                     snapshot_date=block_period
                 )
             )
 
         self.repo.save_turnovers_snapshot(block_period, snapshot_list)
+
         return snapshot_list
 
     def compute_balances_at(self, target_date: date) -> List[balance_model]:
