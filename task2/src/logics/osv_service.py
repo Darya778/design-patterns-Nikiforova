@@ -95,7 +95,8 @@ class OSVCalculator:
 
         for t in txs:
             key = (t.warehouse.id if t.warehouse else None, t.nomenclature.id, t.unit.id if t.unit else None)
-            qty = t.unit.to_base(t.quantity) if getattr(t, "unit", None) and hasattr(t.unit, "to_base") else t.quantity
+            qty = t.unit.to_base(t.quantity)
+
             balances_map[key] = balances_map.get(key, 0.0) + qty
 
         result = []
