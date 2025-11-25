@@ -1,118 +1,71 @@
 """
-Загружает и хранит настройки приложения из JSON-файла
+Загружает и хранит настройки приложения
 """
-
-import os
-import json
-from src.models.company_model import company_model
+import os, json
+from datetime import date
 from src.models.settings_model import settings_model
-import json
-from src.models.settings_model import settings_model, ResponseFormat
+from typing import Optional
 
 """
 Менеджер настроек (Singleton)
 Управляет загрузкой и хранением конфигурации приложения
 """
 class settings_manager:
-
-    __file_name: str = ""
-    __settings: settings_model | None = None
     _instance = None
+    __settings: settings_model | None = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, file_name: str = "", config_path: str = "settings.json"):
+    def __init__(self, file_name: str = "", config_path: str = "settings.json") -> None:
+        self.config_path = config_path
         if file_name:
             self.file_name = file_name
-            self.config_path = config_path
-            self.settings: settings_model | None = None
 
     """ Возвращает текущие настройки """
     @property
     def settings(self) -> settings_model | None:
         return self.__settings
 
-    """ Возвращает текущую организацию """
-    @property
-    def company(self) -> company_model | None:
-        return self.__settings.company if self.__settings else None
-
     """ Возвращает путь к файлу настроек """
     @property
     def file_name(self) -> str:
-        return self.__file_name
+        return getattr(self, "_settings_file", "")
 
     """ Устанавливает путь к файлу настроек """
     @file_name.setter
     def file_name(self, value: str):
-        if not value:
-            return
-        path = os.path.normpath(value.strip())
+        v = value.strip()
+        if os.path.isfile(v):
+            self._settings_file = v
 
-        if os.path.isfile(path):
-            self.__file_name = os.path.abspath(path)
-            return
-
-        candidates = [
-            os.path.abspath(path),
-            os.path.abspath(os.path.join(os.getcwd(), "..", os.path.basename(path))),
-            os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")), path),
-        ]
-
-        for candidate in candidates:
-            if os.path.isfile(candidate):
-                self.__file_name = candidate
-                return
-
-    """ Загружает настройки из файла """
-    def load(self) -> bool:
-        if not self.__file_name:
-            raise FileNotFoundError("Не указан путь к файлу настроек")
-
-        if not os.path.isfile(self.__file_name):
-            raise FileNotFoundError(f"Файл {self.__file_name} не найден")
-
-        try:
-            with open(self.__file_name, "r", encoding="utf-8") as file:
-                data = json.load(file)
-
-            if isinstance(data, dict) and "company" in data:
-                comp = self._dict_to_company(data["company"])
-                self.__settings = settings_model(company=comp)
-                return True
-            return False
-        except Exception as ex:
-            print("Ошибка загрузки:", ex)
-            return False
-
-    """ Настройки по умолчанию """
-    def default(self):
-        comp = company_model()
-        comp.name = "Рога и копыта"
-        self.__settings = settings_model(company=comp)
-
-    """ Создает экземпляр company_model из словаря """
-    def _dict_to_company(self, data: dict) -> company_model:
-        comp = company_model()
-        for field in ("name", "inn", "account", "corr_account", "bik", "ownership"):
-            if field in data and data[field]:
-                setattr(comp, field, data[field])
-        return comp
-
-    """ Загружает настройки из JSON-файла """
-    def load_settings(self):
-
+    def load_settings(self) -> settings_model:
+        if not os.path.exists(self.config_path):
+            self.__settings = settings_model()
+            self.save_settings()
+            return self.__settings
         with open(self.config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
+        self.__settings = settings_model.from_dict(data)
+        return self.__settings
 
-        format_str = data.get("response_format", "JSON")
-        response_format = ResponseFormat[format_str.upper()]
+    def save_settings(self) -> None:
+        if not self.__settings:
+            self.__settings = settings_model()
+        data = self.__settings.to_dict()
+        os.makedirs(os.path.dirname(self.config_path) or ".", exist_ok=True)
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
-        self.settings = settings_model(
-            data_source=data.get("data_source", ""),
-            response_format=response_format
-        )
-        return self.settings
+    def set_block_period(self, block_date: date) -> None:
+        if not self.__settings:
+            self.load_settings()
+        self.__settings.block_period = block_date
+        self.save_settings()
+
+    def get_block_period(self) -> Optional[date]:
+        if not self.__settings:
+            self.load_settings()
+        return self.__settings.block_period

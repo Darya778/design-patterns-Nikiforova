@@ -13,6 +13,8 @@ from src.logics.osv_service import OSVCalculator
 from src.core.filter_utils import FilterUtils
 from src.models.filter_dto import FilterDTO
 from src.core.filter_parser import filter_parser
+from src.core.serializer import Serializer
+
 
 app = connexion.FlaskApp(__name__)
 
@@ -246,6 +248,53 @@ def api_osv_filter():
 
     return Response(
         json.dumps(osv_rows, ensure_ascii=False, indent=2),
+        mimetype="application/json"
+    )
+
+# POST /api/settings/block_period
+@app.route("/api/settings/block_period", methods=["POST"])
+def api_set_block_period():
+    body = request.get_json() or {}
+    block_str = body.get("block_period")
+    if not block_str:
+        return jsonify({"error": "block_period required"}), 400
+    try:
+        block_date = datetime.fromisoformat(block_str).date()
+    except:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+    settings = settings_manager()
+    settings.set_block_period(block_date)
+    return jsonify({"block_period": block_date.isoformat()}), 200
+
+# GET /api/settings/block_period
+@app.route("/api/settings/block_period", methods=["GET"])
+def api_get_block_period():
+    settings = settings_manager()
+    bd = settings.get_block_period()
+    return jsonify({"block_period": bd.isoformat() if bd else None}), 200
+
+# GET /api/balances?date=YYYY-MM-DD
+@app.route("/api/balances", methods=["GET"])
+def api_get_balances():
+    date_str = request.args.get("date")
+    if not date_str:
+        return jsonify({"error":"date parameter required"}), 400
+    try:
+        target_date = datetime.fromisoformat(date_str).date()
+    except:
+        return jsonify({"error":"invalid date format; use YYYY-MM-DD"}), 400
+
+    repo = storage_repository()
+    service = start_service(repo)
+    service.create()
+
+    osv = OSVCalculator(repo)
+    osv.settings_manager = settings_manager()
+    balances = osv.compute_balances_at(target_date)
+
+    return Response(
+        json.dumps(Serializer.dump_jsonable(balances), ensure_ascii=False, indent=2),
         mimetype="application/json"
     )
 
