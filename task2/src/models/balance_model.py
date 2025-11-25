@@ -12,3 +12,11 @@ class balance_model:
             unit=self.unit,
             balance=self.balance
         )
+
+    def to_dict(self):
+        return {
+            "warehouse": self.warehouse.to_dict() if self.warehouse and hasattr(self.warehouse, "to_dict") else None,
+            "item": self.item.to_dict() if self.item and hasattr(self.item, "to_dict") else None,
+            "unit": self.unit.to_dict() if self.unit and hasattr(self.unit, "to_dict") else None,
+            "balance": self.balance
+        }
