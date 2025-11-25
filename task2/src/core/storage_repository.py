@@ -1,11 +1,10 @@
 """
 Назначение: хранилище данных для моделей проекта
 """
-import os
-import json
+import os, json
 from datetime import date
+from typing import List, Optional
 from dataclasses import asdict
-from typing import List, Optional, Dict, Any
 
 from src.models.nomenclature_model import nomenclature_model
 from src.models.unit_model import unit_model
@@ -15,12 +14,10 @@ from src.models.warehouse_model import warehouse_model
 from src.models.transaction_model import transaction_model
 from src.models.turnover_snapshot_model import turnover_snapshot_model
 
-
 class storage_repository:
     """
     Репозиторий для хранения всех моделей приложения
     """
-
     def __init__(self):
         self.nomenclatures = []
         self.units = []
@@ -48,6 +45,7 @@ class storage_repository:
     def add_warehouse(self, item): self.warehouses.append(item)
     def add_transaction(self, item): self.transactions.append(item)
 
+    # Поиск по id
     def get_warehouse_by_id(self, warehouse_id: Optional[int]):
         return next((w for w in self.warehouses if getattr(w, "id", None) == warehouse_id), None)
 
@@ -161,24 +159,11 @@ class storage_repository:
         Гарантируем, что все даты преобразованы в ISO-строки.
         """
         os.makedirs(os.path.dirname(self.snapshot_file), exist_ok=True)
-
-        serialized = []
-        for s in data:
-            if hasattr(s, "to_dict") and callable(getattr(s, "to_dict")):
-                d = s.to_dict()
-            else:
-                d = asdict(s)
-
-                sd = d.get("snapshot_date", None)
-                if isinstance(sd, date):
-                    d["snapshot_date"] = sd.isoformat()
-            serialized.append(d)
-
+        serialized = [s.to_dict() if hasattr(s, "to_dict") else asdict(s) for s in data]
         payload = {
             "block_date": block_date.isoformat() if isinstance(block_date, date) else str(block_date),
             "data": serialized
         }
-
         with open(self.snapshot_file, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
@@ -199,16 +184,7 @@ class storage_repository:
         raw = payload.get("data", [])
         result: List[turnover_snapshot_model] = []
         for s in raw:
-            snapshot_date_str = s.get("snapshot_date", None)
-            snap_date = date.fromisoformat(snapshot_date_str) if snapshot_date_str else block_date
-            
-            model_obj = turnover_snapshot_model.from_dict({
-                "warehouse_id": s.get("warehouse_id"),
-                "item_id": s.get("item_id"),
-                "unit_id": s.get("unit_id"),
-                "closing": s.get("closing", 0.0),
-                "snapshot_date": snapshot_date_str
-            }, fallback_date=block_date)
+            model_obj = turnover_snapshot_model.from_dict(s, fallback_date=block_date)
             result.append(model_obj)
 
         return result
