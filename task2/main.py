@@ -13,6 +13,8 @@ from src.logics.osv_service import OSVCalculator
 from src.core.filter_utils import FilterUtils
 from src.models.filter_dto import FilterDTO
 from src.core.filter_parser import filter_parser
+from src.core.serializer import Serializer
+
 
 app = connexion.FlaskApp(__name__)
 
@@ -290,7 +292,11 @@ def api_get_balances():
     osv = OSVCalculator(repo)
     osv.settings_manager = settings_manager()
     balances = osv.compute_balances_at(target_date)
-    return Response(json.dumps(balances, ensure_ascii=False, indent=2), mimetype="application/json")
+
+    return Response(
+        json.dumps(Serializer.dump_jsonable(balances), ensure_ascii=False, indent=2),
+        mimetype="application/json"
+    )
 
 
 if __name__ == "__main__":
